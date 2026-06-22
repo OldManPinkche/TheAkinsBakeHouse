@@ -2473,28 +2473,28 @@
         .site-header {
           grid-template-columns: 1fr;
           justify-items: center;
-          gap: 10px;
-          padding: 10px 12px 12px;
+          gap: 8px;
+          padding: 9px 12px 10px;
         }
 
         .brand {
           justify-self: center;
-          gap: 10px;
+          gap: 9px;
         }
 
         .brand img {
-          width: 42px;
-          height: 42px;
+          width: 38px;
+          height: 38px;
         }
 
         .brand strong {
-          font-size: 1rem;
+          font-size: 0.96rem;
         }
 
         .brand-subtitle {
           display: block;
-          font-size: 0.62rem;
-          letter-spacing: 0.12em;
+          font-size: 0.58rem;
+          letter-spacing: 0.1em;
         }
 
         .nav {
@@ -2508,14 +2508,14 @@
 
         .nav a {
           display: grid;
-          min-height: 36px;
+          min-height: 34px;
           place-items: center;
-          padding: 7px 4px;
-          font-size: 0.74rem;
+          padding: 6px 4px;
+          font-size: 0.7rem;
         }
 
         .hero {
-          padding: 34px 14px 28px;
+          padding: 30px 14px 28px;
         }
 
         .hero::before {
@@ -2539,8 +2539,8 @@
 
         .eyebrow,
         .section-kicker {
-          font-size: 0.65rem;
-          letter-spacing: 0.13em;
+          font-size: 0.62rem;
+          letter-spacing: 0.1em;
         }
 
         .hero .eyebrow {
@@ -2551,26 +2551,35 @@
         }
 
         h1 {
-          font-size: clamp(2.65rem, 14vw, 3.55rem);
-          line-height: 0.98;
+          font-size: clamp(2.25rem, 11.5vw, 2.95rem);
+          line-height: 1;
         }
 
         h2 {
-          font-size: clamp(2rem, 9vw, 2.55rem);
-          line-height: 1.02;
+          font-size: clamp(1.75rem, 7.4vw, 2.2rem);
+          line-height: 1.04;
         }
 
         h3 {
-          line-height: 1.08;
+          line-height: 1.12;
         }
 
         .hero-copy {
-          margin-top: 16px;
-          font-size: 1rem;
+          max-width: 330px;
+          margin-top: 14px;
+          font-size: 0.94rem;
+          line-height: 1.48;
         }
 
         .hero-actions {
-          margin-top: 22px;
+          margin-top: 18px;
+        }
+
+        .button {
+          min-height: 42px;
+          padding: 10px 14px;
+          border-radius: 7px;
+          font-size: 0.84rem;
         }
 
         .hero-actions .button,
@@ -2579,6 +2588,10 @@
         .review-cta .button,
         #square-pay-button {
           width: 100%;
+        }
+
+        .hero-actions .button {
+          width: min(100%, 320px);
         }
 
         .bake-strip {
@@ -2593,16 +2606,16 @@
 
         .strip-item span {
           margin-bottom: 6px;
-          font-size: 0.65rem;
+          font-size: 0.62rem;
           letter-spacing: 0.1em;
         }
 
         .strip-item strong {
-          font-size: 1.08rem;
+          font-size: 1rem;
         }
 
         .section {
-          padding: 42px 14px;
+          padding: 36px 14px;
         }
 
         .section-heading {
@@ -2611,7 +2624,8 @@
         }
 
         .section-heading p {
-          font-size: 0.98rem;
+          font-size: 0.93rem;
+          line-height: 1.48;
         }
 
         .favorites-grid,
@@ -2624,8 +2638,24 @@
         }
 
         .favorite-card-copy {
-          gap: 10px;
-          padding: 16px;
+          gap: 9px;
+          padding: 15px;
+        }
+
+        .favorite-card-copy h3,
+        .bundle-card h3,
+        .quick-card h3,
+        .update-card h3 {
+          font-size: 1.22rem;
+        }
+
+        .favorite-card-copy p,
+        .bundle-card p,
+        .quick-card p,
+        .update-card p,
+        .local-note p {
+          font-size: 0.91rem;
+          line-height: 1.48;
         }
 
         .preorder-panel {
@@ -2649,7 +2679,7 @@
         }
 
         .meta-box strong {
-          font-size: 1.2rem;
+          font-size: 1.08rem;
         }
 
         .bundle-card,
@@ -2671,6 +2701,13 @@
           width: 100%;
           min-height: auto;
           padding: 12px;
+        }
+
+        .add-button {
+          min-height: 38px;
+          padding: 8px 10px;
+          border-radius: 7px;
+          font-size: 0.73rem;
         }
 
         .bundle-price .add-button,
@@ -2704,7 +2741,8 @@
         }
 
         .story-copy p {
-          font-size: 0.96rem;
+          font-size: 0.92rem;
+          line-height: 1.55;
         }
 
         .about-text {
@@ -2728,7 +2766,12 @@
         }
 
         .thank-you-copy h2 {
-          font-size: clamp(1.85rem, 8vw, 2.25rem);
+          font-size: clamp(1.55rem, 6.8vw, 1.95rem);
+        }
+
+        .thank-you-copy p:not(.section-kicker) {
+          font-size: 0.92rem;
+          line-height: 1.5;
         }
 
         .page-hero {
@@ -2755,8 +2798,9 @@
         }
 
         .menu-controls button {
-          min-height: 44px;
+          min-height: 40px;
           padding: 8px 10px;
+          font-size: 0.78rem;
         }
 
         .menu-board {
@@ -2767,7 +2811,7 @@
         .menu-board::before {
           margin-bottom: 18px;
           padding-bottom: 14px;
-          font-size: 1.5rem;
+          font-size: 1.34rem;
         }
 
         .category-top {
@@ -2792,8 +2836,9 @@
         }
 
         .bake-item .add-button {
-          justify-self: stretch;
-          width: 100%;
+          justify-self: start;
+          width: auto;
+          min-width: 88px;
           min-height: 40px;
         }
 
@@ -2808,6 +2853,28 @@
         .checkout-heading {
           gap: 12px;
           margin-bottom: 18px;
+        }
+
+        .checkout-heading h1 {
+          font-size: clamp(2rem, 10.5vw, 2.55rem);
+        }
+
+        .checkout-heading p:not(.section-kicker),
+        .step-heading p,
+        .summary-note,
+        .square-pay-area p {
+          font-size: 0.9rem;
+          line-height: 1.48;
+        }
+
+        .checkout-heading .button {
+          width: auto;
+          min-width: 148px;
+          justify-self: start;
+        }
+
+        .step-heading h2 {
+          font-size: 1.28rem;
         }
 
         .simple-checkout {
@@ -2840,11 +2907,11 @@
         }
 
         .nav a {
-          font-size: 0.7rem;
+          font-size: 0.68rem;
         }
 
         h1 {
-          font-size: clamp(2.45rem, 13vw, 3.15rem);
+          font-size: clamp(2.15rem, 11vw, 2.65rem);
         }
 
         .section {
@@ -2853,7 +2920,7 @@
         }
 
         .menu-controls {
-          grid-template-columns: 1fr;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
       }
 
