@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Menu &amp; Pricing | The Akins Bake House</title>
+    <meta name="description" content="The Akins Bake House menu and starter prices for cookies, breads, cakes, pies, cheesecake, cinnamon rolls, and banana pudding.">
+    <link rel="canonical" href="https://theakinsbakehouse.com/menu.html">
+    <meta property="og:title" content="Menu &amp; Pricing | The Akins Bake House">
+    <meta property="og:description" content="The Akins Bake House menu and starter prices for cookies, breads, cakes, pies, cheesecake, cinnamon rolls, and banana pudding.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://theakinsbakehouse.com/menu.html">
+    <meta property="og:image" content="https://theakinsbakehouse.com/assets/akins-logo.png">
+    <link rel="icon" href="assets/akins-logo.png">
+    <link rel="stylesheet" href="assets/site.css">
+    <script src="assets/site.js" defer></script>
+  </head>
+
+  <body>
+    <header class="site-header">
+      <a class="brand" href="index.html" aria-label="The Akins Bake House home">
+        <img src="assets/akins-logo.png" alt="The Akins Bake House logo">
+        <span class="brand-copy">
+          <strong>The Akins</strong>
+          <span class="brand-subtitle">Bake House</span>
+        </span>
+      </a>
+
+      <nav class="nav" aria-label="Main navigation">
+        <a href="index.html">Home</a>
+        <a href="index.html#about">About</a>
+        <a href="menu.html" aria-current="page">Menu</a>
+        <a href="checkout.html">Checkout</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="page-hero" aria-labelledby="menu-page-title">
+        <div class="page-hero-inner">
+          <div class="page-hero-copy">
+            <p class="section-kicker">Menu & Pricing</p>
+            <h1 id="menu-page-title">Pick your bake.</h1>
+            <p class="hero-copy">
+              Browse the full bake house menu with starter prices, then add an item to checkout when you are ready to reserve it.
+            </p>
+            <div class="page-actions">
+              <a class="button" href="checkout.html">Go To Checkout</a>
+            </div>
+          </div>
+          <div class="page-hero-card">
+            <img src="assets/akins-logo.png" alt="">
+            <strong>Prices are clear before checkout.</strong>
+            <p>Full payment is due after the total is confirmed. Custom sizes, decoration, and serving counts may change starter pricing.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="menu" aria-labelledby="menu-title">
+        <div class="section-inner">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Full Menu</p>
+              <h2 id="menu-title">All bakes and prices.</h2>
+            </div>
+            <p>
+              Filter by category or scan the whole board. Cinnamon rolls, pumpkin bread, and no bake cookies are marked as favorites.
+            </p>
+          </div>
+
+          <div class="menu-controls" aria-label="Filter menu categories">
+            <button class="is-active" type="button" data-menu-filter="all" aria-pressed="true">All</button>
+            <button type="button" data-menu-filter="cookies" aria-pressed="false">Cookies</button>
+            <button type="button" data-menu-filter="cakes" aria-pressed="false">Cakes</button>
+            <button type="button" data-menu-filter="breads" aria-pressed="false">Breads</button>
+            <button type="button" data-menu-filter="pies" aria-pressed="false">Pies & Puddings</button>
+          </div>
+
+          <div class="menu-cart" id="menu-cart" aria-live="polite">
+            <div class="menu-cart-top">
+              <div>
+                <span>Current order</span>
+                <strong id="menu-cart-count">No items yet</strong>
+              </div>
+              <strong id="menu-cart-total">$0</strong>
+            </div>
+            <div class="menu-cart-lines" id="menu-cart-lines">
+              <span class="empty-state">Tap Add on any bake, then check out when you are ready.</span>
+            </div>
+            <div class="menu-cart-actions">
+              <a class="button is-disabled" id="menu-checkout-link" href="checkout.html" aria-disabled="true">Add Items First</a>
+              <button class="add-button" id="menu-clear-cart" type="button">Clear</button>
+            </div>
+            <p class="status" id="menu-cart-status"></p>
+          </div>
+
+          <div class="menu-board">
+            <section class="menu-category" data-menu-category="cookies" aria-labelledby="cookies-title">
+              <div class="category-top">
+                <h3 id="cookies-title">Cookies</h3>
+                <span>By the batch</span>
+              </div>
+
+              <article class="bake-item" data-item-category="cookies">
+                <div>
+                  <h3>Oatmeal Raisin Cookies</h3>
+                  <p>Soft oats, raisin sweetness, and a little warm spice.</p>
+                  <span class="price-line">$20 / dozen</span>
+                </div>
+                <button class="add-button" type="button" data-item-name="Oatmeal Raisin Cookies">Add</button>
+              </article>
+
+              <article class="bake-item" data-item-category="cookies">
+                <div>
+                  <div class="bake-title">
+                    <h3>No Bake Cookies</h3>
+                    <span class="mini-favorite">Favorite</span>
+                  </div>
+                  <p>Chocolate, peanut butter, and oats with that classic no-bake bite.</p>
+                  <span class="price-line">$20 / dozen</span>
+                </div>
+                <button class="add-button" type="button" data-item-name="No Bake Cookies">Add</button>
+              </article>
+
+              <article class="bake-item" data-item-category="cookies">
+                <div>
+                  <h3>Peanut Butter Cookies</h3>
+                  <p>Rich peanut butter flavor with a tender, crisscross top.</p>
+                  <span class="price-line">$20 / dozen</span>
+                </div>
+                <button class="add-button" type="button" data-item-name="Peanut Butter Cookies">Add</button>
+              </article>
+
+              <article class="bake-item" data-item-category="cookies">
+                <div>
+                  <h3>Chocolate Chip Cookies</h3>
+                  <p>Golden edges, soft centers, and plenty of chocolate.</p>
+                  <span class="price-line">$20 / dozen</span>
+                </div>
+                <button class="add-button" type="button" data-item-name="Chocolate Chip Cookies">Add</button>
+              </article>
+            </section>
+
+            <section class="menu-category" data-menu-category="cakes" aria-labelledby="cakes-title">
+              <div class="category-top">
+                <h3 id="cakes-title">Cakes &amp; Party Bakes</h3>
+                <span>For sharing</span>
+              </div>
+
+              <article class="bake-item" data-item-category="cakes">
+                <div>
+                  <h3>Cookie Cakes</h3>
+                  <p>A soft cookie centerpiece for birthdays, showers, and celebrations.</p>
+                  <span class="price-line">Starting at $30</span>
+                </div>
+                <button class="add-button" type="button" data-item-name="Cookie Cakes">Add</button>
+              </article>
+
+              <article class="bake-item" data-item-category="cakes">
+                <div>
+                  <h3>Cake Pops</h3>
+                  <p>Small, giftable bites that are easy to serve.</p>
+                  <span class="price-line">$28 / dozen</span>
+                </div>
+                <button class="add-button" type="button" data-item-name="Cake Pops">Add</button>
+              </article>
+
+              <article class="bake-item" data-item-category="cakes">
+                <div>
+                  <h3>Butterfinger Cake</h3>
+                  <p>Rich cake with candy crunch and a sweet nostalgic finish.</p>
+                  <span class="price-line">Starting at $20</span>
+                </div>
+                <button class="add-button" type="button" data-item-name="Butterfinger Cake">Add</button>
+              </article>
+
+              <article class="bake-item" data-item-category="cakes">
+                <div>
+                  <h3>Cupcakes</h3>
+                  <p>Party-ready cupcakes for trays, birthdays, and dessert tables.</p>
+                  <span class="price-line">$25 / dozen</span>
+                </div>
+                <button class="add-button" type="button" data-item-name="Cupcakes">Add</button>
+              </article>
+
+              <article class="bake-item" data-item-category="cakes">
+                <div>
+                  <h3>Cheesecake</h3>
+                  <p>Smooth, creamy cheesecake for a polished dessert table.</p>
+                  <span class="price-line">Starting at $20</span>
+                </div>
+                <button class="add-button" type="button" data-item-name="Cheesecake">Add</button>
+              </article>
+            </section>
+
+            <section class="menu-category" data-menu-category="breads" aria-labelledby="breads-title">
+              <div class="category-top">
+                <h3 id="breads-title">Breads &amp; Rolls</h3>
+                <span>Cozy bakes</span>
+              </div>
+
+              <article class="bake-item" data-item-category="breads">
+                <div>
+                  <div class="bake-title">
+                    <h3>Cinnamon Rolls</h3>
+                    <span class="mini-favorite">Favorite</span>
+                  </div>
+                  <p>Soft swirls baked warm with cinnamon sweetness.</p>
+                  <span class="price-line">$25 / dozen</span>
+                </div>
+                <button class="add-button" type="button" data-item-name="Cinnamon Rolls">Add</button>
+              </article>
+
+              <article class="bake-item" data-item-category="breads">
+                <div>
+                  <h3>Banana Bread</h3>
+                  <p>Moist, sliceable, and made for breakfast, gifting, or snacking.</p>
+                  <span class="price-line">$10 / loaf</span>
+                </div>
+                <button class="add-button" type="button" data-item-name="Banana Bread">Add</button>
+              </article>
+
+              <article class="bake-item" data-item-category="breads">
+                <div>
+                  <div class="bake-title">
+                    <h3>Pumpkin Bread</h3>
+                    <span class="mini-favorite">Favorite</span>
+                  </div>
+                  <p>Cozy pumpkin flavor in a soft loaf.</p>
+                  <span class="price-line">$10 / loaf</span>
+                </div>
+                <button class="add-button" type="button" data-item-name="Pumpkin Bread">Add</button>
+              </article>
+            </section>
+
+            <section class="menu-category" data-menu-category="pies" aria-labelledby="pies-title">
+              <div class="category-top">
+                <h3 id="pies-title">Pies &amp; Puddings</h3>
+                <span>Chilled favorites</span>
+              </div>
+
+              <article class="bake-item" data-item-category="pies">
+                <div>
+                  <h3>Coconut Cream Pie</h3>
+                  <p>Cool coconut filling, cream topping, and a tender pie finish.</p>
+                  <span class="price-line">$20 / pie</span>
+                </div>
+                <button class="add-button" type="button" data-item-name="Coconut Cream Pie">Add</button>
+              </article>
+
+              <article class="bake-item" data-item-category="pies">
+                <div>
+                  <h3>Banana Pudding</h3>
+                  <p>Creamy layers for family gatherings, dessert cups, and parties.</p>
+                  <span class="price-line">Starting at $10</span>
+                </div>
+                <button class="add-button" type="button" data-item-name="Banana Pudding">Add</button>
+              </article>
+            </section>
+          </div>
+          <p class="fine-print">
+            Prices are starter pricing and may change with size, flavor, decoration, or serving count. Full payment is due after the total is confirmed.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <img src="assets/akins-logo.png" alt="">
+      <p>The Akins Bake House &middot; Freshly baked. Made with heart.</p>
+      <div class="footer-links" aria-label="Contact links">
+        <a href="https://theakinsbakehouse.com">TheAkinsBakeHouse.com</a>
+        <a href="mailto:theakinsbakehouse@yahoo.com">theakinsbakehouse@yahoo.com</a>
+      </div>
+    </footer>
+  </body>
+</html>
