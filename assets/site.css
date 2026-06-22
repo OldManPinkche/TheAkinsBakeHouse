@@ -2793,14 +2793,26 @@
 
         .menu-controls {
           display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 8px;
+          grid-template-columns: repeat(6, minmax(0, 1fr));
+          gap: 9px;
+          margin-bottom: 18px;
+          padding: 10px;
+          border: 1px solid rgba(47, 27, 16, 0.1);
+          border-radius: 8px;
+          background: rgba(255, 253, 248, 0.58);
         }
 
         .menu-controls button {
-          min-height: 40px;
-          padding: 8px 10px;
-          font-size: 0.78rem;
+          grid-column: span 2;
+          min-height: 38px;
+          padding: 8px 9px;
+          border-radius: 7px;
+          font-size: 0.75rem;
+        }
+
+        .menu-controls button:nth-child(4),
+        .menu-controls button:nth-child(5) {
+          grid-column: span 3;
         }
 
         .menu-board {
@@ -2809,9 +2821,9 @@
         }
 
         .menu-board::before {
-          margin-bottom: 18px;
-          padding-bottom: 14px;
-          font-size: 1.34rem;
+          margin-bottom: 16px;
+          padding-bottom: 12px;
+          font-size: 1.18rem;
         }
 
         .category-top {
@@ -2826,8 +2838,8 @@
         }
 
         .bake-item {
-          grid-template-columns: 1fr;
-          gap: 10px;
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 10px 12px;
           padding: 14px 0;
         }
 
@@ -2836,10 +2848,11 @@
         }
 
         .bake-item .add-button {
-          justify-self: start;
+          align-self: end;
+          justify-self: end;
           width: auto;
-          min-width: 88px;
-          min-height: 40px;
+          min-width: 78px;
+          min-height: 38px;
         }
 
         .price-line {
@@ -2920,7 +2933,7 @@
         }
 
         .menu-controls {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-template-columns: repeat(6, minmax(0, 1fr));
         }
       }
 
