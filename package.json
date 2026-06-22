@@ -3,8 +3,7 @@
     "build": "node scripts/build-site.js",
     "dev": "npm run build && netlify dev --dir outputs --functions netlify/functions --port 8888",
     "env:setup": "node scripts/ensure-env.js",
-    "notify:test": "node scripts/test-discord-notification.js",
-    "check": "node --check assets/site.js && node --check netlify/functions/create-square-checkout.js && node --check netlify/functions/square-payment-webhook.js && node --check scripts/build-site.js && node --check scripts/ensure-env.js && node --check scripts/test-discord-notification.js"
+    "check": "node --check assets/site.js && node --check netlify/functions/create-square-checkout.js && node --check scripts/build-site.js && node --check scripts/ensure-env.js"
   },
   "devDependencies": {
     "netlify-cli": "^26.1.0"

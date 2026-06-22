@@ -34,16 +34,6 @@
       "command": "npm run check",
       "group": "test",
       "problemMatcher": []
-    },
-    {
-      "label": "Akins: Test Discord Notification",
-      "type": "shell",
-      "command": "npm run notify:test",
-      "problemMatcher": [],
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated"
-      }
     }
   ]
 }

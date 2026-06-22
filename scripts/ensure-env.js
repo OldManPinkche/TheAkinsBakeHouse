@@ -20,18 +20,6 @@ const expectedEntries = [
   {
     key: "SITE_URL",
     value: "https://theakinsbakehouse.com"
-  },
-  {
-    key: "SQUARE_WEBHOOK_URL",
-    value: "https://theakinsbakehouse.com/api/square-payment-webhook"
-  },
-  {
-    key: "SQUARE_WEBHOOK_SIGNATURE_KEY",
-    value: "paste_square_webhook_signature_key_here"
-  },
-  {
-    key: "DISCORD_ORDER_WEBHOOK_URL",
-    value: "paste_discord_webhook_url_here"
   }
 ];
 
@@ -54,7 +42,7 @@ if (!missingEntries.length) {
 }
 
 const section = [
-  "# Free order notification setup",
+  "# Square checkout setup",
   ...missingEntries.map((entry) => `${entry.key}=${entry.value}`)
 ].join("\n");
 const separator = existingContent.trim() ? "\n\n" : "";
