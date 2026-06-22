@@ -1,0 +1,12 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Open Local Checkout",
+      "type": "pwa-chrome",
+      "request": "launch",
+      "url": "http://localhost:8888/checkout.html",
+      "webRoot": "${workspaceFolder}"
+    }
+  ]
+}

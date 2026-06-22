@@ -1,0 +1,14 @@
+[build]
+  command = "npm run build"
+  publish = "outputs"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/create-square-checkout"
+  to = "/.netlify/functions/create-square-checkout"
+  status = 200
+
+[[redirects]]
+  from = "/api/square-payment-webhook"
+  to = "/.netlify/functions/square-payment-webhook"
+  status = 200

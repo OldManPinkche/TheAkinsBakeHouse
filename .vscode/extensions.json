@@ -1,0 +1,7 @@
+{
+  "recommendations": [
+    "netlify.netlify-vscode",
+    "dotenv.dotenv-vscode",
+    "tamasfe.even-better-toml"
+  ]
+}

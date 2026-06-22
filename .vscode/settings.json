@@ -1,0 +1,14 @@
+{
+  "editor.formatOnSave": true,
+  "files.exclude": {
+    ".netlify": true,
+    "node_modules": true
+  },
+  "search.exclude": {
+    ".netlify": true,
+    "node_modules": true,
+    "outputs": true
+  },
+  "npm.packageManager": "npm",
+  "terminal.integrated.defaultProfile.windows": "PowerShell"
+}
