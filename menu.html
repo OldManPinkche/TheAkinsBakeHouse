@@ -75,6 +75,24 @@
             <button type="button" data-menu-filter="pies" aria-pressed="false">Pies & Puddings</button>
           </div>
 
+          <div class="menu-cart" id="menu-cart" aria-live="polite">
+            <div class="menu-cart-top">
+              <div>
+                <span>Current order</span>
+                <strong id="menu-cart-count">No items yet</strong>
+              </div>
+              <strong id="menu-cart-total">$0</strong>
+            </div>
+            <div class="menu-cart-lines" id="menu-cart-lines">
+              <span class="empty-state">Tap Add on any bake, then check out when you are ready.</span>
+            </div>
+            <div class="menu-cart-actions">
+              <a class="button is-disabled" id="menu-checkout-link" href="checkout.html" aria-disabled="true">Add Items First</a>
+              <button class="add-button" id="menu-clear-cart" type="button">Clear</button>
+            </div>
+            <p class="status" id="menu-cart-status"></p>
+          </div>
+
           <div class="menu-board">
             <section class="menu-category" data-menu-category="cookies" aria-labelledby="cookies-title">
               <div class="category-top">

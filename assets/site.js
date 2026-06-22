@@ -23,6 +23,7 @@ const selectedItems = [];
 const bakeHouseEmail = "theakinsbakehouse@yahoo.com";
 const dynamicSquareCheckoutEndpoint = "/api/create-square-checkout";
 const orderHistoryKey = "akinsBakeHouseOrderHistory";
+const orderCartKey = "akinsBakeHouseCurrentOrder";
 let squareCheckoutInProgress = false;
 
 function getFieldValue(selector) {
@@ -38,6 +39,34 @@ function buildCheckoutUrl(item) {
   const url = new URL("checkout.html", window.location.href);
   url.searchParams.set("item", item);
   return url.href;
+}
+
+function readSavedCart() {
+  try {
+    const cart = JSON.parse(window.localStorage.getItem(orderCartKey)) || [];
+
+    return Array.isArray(cart) ? cart.filter((item) => priceBook[item]) : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function writeSavedCart() {
+  try {
+    if (selectedItems.length) {
+      window.localStorage.setItem(orderCartKey, JSON.stringify(selectedItems));
+    } else {
+      window.localStorage.removeItem(orderCartKey);
+    }
+
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+function loadSavedCart() {
+  selectedItems.splice(0, selectedItems.length, ...readSavedCart());
 }
 
 function normalizeCustomerKey(value) {
@@ -98,6 +127,84 @@ function setupMenuFilters() {
       });
     });
   });
+}
+
+function renderMenuCart() {
+  const cart = document.querySelector("#menu-cart");
+  const countLabel = document.querySelector("#menu-cart-count");
+  const totalLabel = document.querySelector("#menu-cart-total");
+  const cartLines = document.querySelector("#menu-cart-lines");
+  const checkoutLink = document.querySelector("#menu-checkout-link");
+
+  if (!cart || !countLabel || !totalLabel || !cartLines || !checkoutLink) {
+    return;
+  }
+
+  const summary = getCheckoutSummary();
+  const itemCount = selectedItems.length;
+
+  cart.classList.toggle("is-empty", !itemCount);
+  countLabel.textContent = itemCount
+    ? `${itemCount} ${itemCount === 1 ? "item" : "items"} added`
+    : "No items yet";
+  totalLabel.textContent = formatMoney(summary.total);
+  checkoutLink.classList.toggle("is-disabled", !itemCount);
+  checkoutLink.setAttribute("aria-disabled", String(!itemCount));
+  checkoutLink.textContent = itemCount ? "Review In Checkout" : "Add Items First";
+
+  cartLines.replaceChildren();
+
+  if (!summary.lines.length) {
+    const empty = document.createElement("span");
+    empty.className = "empty-state";
+    empty.textContent = "Tap Add on any bake, then check out when you are ready.";
+    cartLines.append(empty);
+    return;
+  }
+
+  summary.lines.forEach((line) => {
+    const chip = document.createElement("span");
+    const label = document.createElement("span");
+    const remove = document.createElement("button");
+
+    chip.className = "item-chip";
+    label.textContent = `${line.item}${line.quantity > 1 ? ` x${line.quantity}` : ""} - ${formatMoney(line.lineTotal)}`;
+    remove.type = "button";
+    remove.textContent = "x";
+    remove.setAttribute("aria-label", `Remove one ${line.item}`);
+    remove.addEventListener("click", () => removeSelectedItem(line.item));
+
+    chip.append(label, remove);
+    cartLines.append(chip);
+  });
+}
+
+function setupMenuCart() {
+  const cart = document.querySelector("#menu-cart");
+
+  if (!cart) {
+    return;
+  }
+
+  document.querySelector("#menu-clear-cart")?.addEventListener("click", () => {
+    const statusMessage = document.querySelector("#menu-cart-status");
+
+    selectedItems.splice(0, selectedItems.length);
+    writeSavedCart();
+    renderMenuCart();
+
+    if (statusMessage) {
+      statusMessage.textContent = "Current order cleared.";
+    }
+  });
+
+  document.querySelector("#menu-checkout-link")?.addEventListener("click", (event) => {
+    if (!selectedItems.length) {
+      event.preventDefault();
+    }
+  });
+
+  renderMenuCart();
 }
 
 function getCheckoutSummary() {
@@ -296,15 +403,40 @@ function renderSelectedItems() {
 
 function addSelectedItem(item, sourceButton) {
   const statusMessage = document.querySelector("#form-status");
+  const menuStatusMessage = document.querySelector("#menu-cart-status");
   const itemSelect = document.querySelector("#menu-item");
   const alreadySelected = selectedItems.includes(item);
 
   if (!document.querySelector("#order-form")) {
-    window.location.href = buildCheckoutUrl(item);
+    if (!document.querySelector("#menu-cart")) {
+      window.location.href = buildCheckoutUrl(item);
+      return;
+    }
+
+    selectedItems.push(item);
+    writeSavedCart();
+
+    if (menuStatusMessage) {
+      menuStatusMessage.textContent = alreadySelected ? `Another ${item} added.` : `${item} added.`;
+    }
+
+    if (sourceButton) {
+      const originalText = sourceButton.dataset.originalText || sourceButton.textContent;
+      sourceButton.dataset.originalText = originalText;
+      sourceButton.classList.add("is-added");
+      sourceButton.textContent = "Added";
+      window.setTimeout(() => {
+        sourceButton.classList.remove("is-added");
+        sourceButton.textContent = originalText;
+      }, 900);
+    }
+
+    renderMenuCart();
     return;
   }
 
   selectedItems.push(item);
+  writeSavedCart();
 
   if (statusMessage) {
     statusMessage.textContent = alreadySelected ? `Another ${item} added to checkout.` : `${item} added to checkout.`;
@@ -330,16 +462,23 @@ function addSelectedItem(item, sourceButton) {
 
 function removeSelectedItem(item) {
   const statusMessage = document.querySelector("#form-status");
+  const menuStatusMessage = document.querySelector("#menu-cart-status");
   const index = selectedItems.indexOf(item);
 
   if (index >= 0) {
     selectedItems.splice(index, 1);
+    writeSavedCart();
 
     if (statusMessage) {
       statusMessage.textContent = `${item} removed.`;
     }
 
+    if (menuStatusMessage) {
+      menuStatusMessage.textContent = `${item} removed.`;
+    }
+
     renderSelectedItems();
+    renderMenuCart();
   }
 }
 
@@ -467,7 +606,7 @@ function showSquareReturnStatus() {
   const squareStatus = new URLSearchParams(window.location.search).get("square");
 
   if (statusMessage && squareStatus === "paid") {
-    statusMessage.textContent = "Payment received. Square will send the paid order details to The Akins Bake House automatically.";
+    statusMessage.textContent = "Payment received. Square will keep the paid order details for The Akins Bake House.";
   }
 }
 
@@ -552,6 +691,7 @@ function renderReturningOrders(contactValue = getFieldValue("#customer-contact")
           selectedItems.push(line.item);
         }
       });
+      writeSavedCart();
 
       const nameField = document.querySelector("#customer-name");
       const contactField = document.querySelector("#customer-contact");
@@ -643,6 +783,7 @@ function setupCheckout() {
       selectedItems.push(item);
     }
   });
+  writeSavedCart();
 
   document.querySelector("#add-selected-item")?.addEventListener("click", () => {
     const statusMessage = document.querySelector("#form-status");
@@ -709,5 +850,7 @@ document.querySelectorAll("[data-item-name]").forEach((button) => {
   });
 });
 
+loadSavedCart();
 setupMenuFilters();
+setupMenuCart();
 setupCheckout();
