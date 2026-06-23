@@ -21,7 +21,7 @@ const menuItems = [
 const priceBook = Object.fromEntries(menuItems.map((item) => [item.name, item]));
 const selectedItems = [];
 const bakeHouseEmail = "theakinsbakehouse@yahoo.com";
-const dynamicSquareCheckoutEndpoint = "/api/create-square-checkout";
+const dynamicSquareCheckoutEndpoint = "https://meek-panda-cd04ce.netlify.app/api/create-square-checkout";
 const orderHistoryKey = "akinsBakeHouseOrderHistory";
 const orderCartKey = "akinsBakeHouseCurrentOrder";
 let squareCheckoutInProgress = false;
