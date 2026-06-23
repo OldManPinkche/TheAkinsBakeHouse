@@ -3,9 +3,13 @@
     "build": "node scripts/build-site.js",
     "dev": "npm run build && netlify dev --dir outputs --functions netlify/functions --port 8888",
     "env:setup": "node scripts/ensure-env.js",
-    "check": "node --check assets/site.js && node --check netlify/functions/create-square-checkout.js && node --check scripts/build-site.js && node --check scripts/ensure-env.js"
+    "check": "node --check assets/site.js && node --check netlify/functions/create-square-checkout.js && node --check cloudflare/square-checkout-worker.mjs && node --check scripts/build-site.js && node --check scripts/ensure-env.js",
+    "worker:login": "wrangler login",
+    "worker:secret": "wrangler secret put SQUARE_ACCESS_TOKEN",
+    "worker:deploy": "wrangler deploy"
   },
   "devDependencies": {
-    "netlify-cli": "^26.1.0"
+    "netlify-cli": "^26.1.0",
+    "wrangler": "^4.104.0"
   }
 }

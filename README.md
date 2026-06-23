@@ -1,6 +1,7 @@
 # The Akins Bake House
 
 Static website with Netlify Functions for Square checkout.
+The live site can also use a Cloudflare Worker for the Square checkout backend when Netlify is not available.
 
 ## VS Code Plug And Play
 
@@ -35,4 +36,29 @@ npm run env:setup
 npm run dev
 npm run build
 npm run check
+```
+
+## Free Cloudflare Worker Checkout
+
+Use this when GitHub Pages should keep hosting the website and Cloudflare should only handle the private Square checkout token.
+
+```text
+npm run worker:login
+npm run worker:secret
+npm run worker:deploy
+```
+
+When `worker:secret` asks for the value, paste the Square production access token. Do not commit the token to GitHub.
+
+The current Worker URL is:
+
+```text
+https://akins-square-checkout.cmhawkins29.workers.dev
+```
+
+If the Worker URL ever changes, set `dynamicSquareCheckoutEndpoint` in `assets/site.js` to the new URL. Then run:
+
+```text
+npm run check
+npm run build
 ```

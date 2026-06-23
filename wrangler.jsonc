@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "akins-square-checkout",
+  "main": "cloudflare/square-checkout-worker.mjs",
+  "compatibility_date": "2026-06-23",
+  "preview_urls": false,
+  "vars": {
+    "SQUARE_ENVIRONMENT": "production",
+    "SQUARE_LOCATION_ID": "auto",
+    "SITE_URL": "https://theakinsbakehouse.com"
+  }
+}

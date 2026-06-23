@@ -1,5 +1,7 @@
 .env
+.dev.vars*
 .netlify/
+.wrangler/
 node_modules/
 outputs/
 localtunnel*.log
