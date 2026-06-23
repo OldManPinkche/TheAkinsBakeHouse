@@ -26,11 +26,19 @@ const headers = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "Content-Type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Max-Age": "86400",
   "Content-Type": "application/json"
 };
 
 function json(statusCode, body) {
   return new Response(JSON.stringify(body), {
+    status: statusCode,
+    headers
+  });
+}
+
+function empty(statusCode) {
+  return new Response(null, {
     status: statusCode,
     headers
   });
@@ -242,7 +250,7 @@ async function createCheckout(request, env) {
 export default {
   async fetch(request, env) {
     if (request.method === "OPTIONS") {
-      return json(204, {});
+      return empty(204);
     }
 
     if (request.method !== "POST") {
