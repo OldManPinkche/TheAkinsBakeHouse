@@ -13,7 +13,7 @@
     <meta property="og:image" content="https://theakinsbakehouse.com/assets/akins-logo.png">
     <link rel="icon" href="assets/akins-logo.png">
     <link rel="stylesheet" href="assets/site.css">
-    <script src="assets/site.js?v=cloudflare-checkout-1" defer></script>
+    <script src="assets/site.js?v=final-total-flow-2" defer></script>
   </head>
 
   <body>
@@ -41,7 +41,7 @@
             <div>
               <p class="section-kicker">Simple Checkout</p>
               <h1 id="order-title">Order your bakes.</h1>
-              <p>Choose your items, add pickup details, and pay in full securely through Square.</p>
+              <p>Choose your items, add pickup details, and pay securely through Square when the final total is ready.</p>
             </div>
             <a class="button secondary" href="menu.html">Back To Menu</a>
           </div>
@@ -91,18 +91,18 @@
                   <span>2</span>
                   <div>
                     <h2 id="details-step-title">Pickup details</h2>
-                    <p>Tell us who the order is for and when you need it.</p>
+                    <p>Tell us who the order is for and when you need it. Please order 48-72 hours ahead when possible.</p>
                   </div>
                 </div>
 
                 <div class="field-grid">
                   <label>
                     Name
-                    <input id="customer-name" name="customer-name" autocomplete="name" placeholder="Your name">
+                    <input id="customer-name" name="customer-name" autocomplete="name" placeholder="Your name" required>
                   </label>
                   <label>
                     Phone or Email
-                    <input id="customer-contact" name="customer-contact" autocomplete="email tel" placeholder="Best way to reach you">
+                    <input id="customer-contact" name="customer-contact" autocomplete="email" placeholder="Best way to reach you" required>
                   </label>
                 </div>
 
@@ -126,7 +126,7 @@
                 <div class="field-grid">
                   <label>
                     Pickup Date
-                    <input id="pickup-date" name="pickup-date" type="date">
+                    <input id="pickup-date" name="pickup-date" type="date" required>
                   </label>
                   <label>
                     Occasion
@@ -142,7 +142,7 @@
 
               <div class="checkout-help">
                 <strong>Need help?</strong>
-                <span>Email <a href="mailto:theakinsbakehouse@yahoo.com">theakinsbakehouse@yahoo.com</a>.</span>
+                <span>Email <a href="mailto:theakinsbakehouse@yahoo.com">theakinsbakehouse@yahoo.com</a>. Allergy note: bakes may share a kitchen with wheat, dairy, eggs, peanuts, and tree nuts.</span>
               </div>
             </div>
 
@@ -164,7 +164,7 @@
                   <strong id="checkout-total">$0</strong>
                 </div>
                 <div class="payment-due">
-                  <span>Pay today</span>
+                  <span>Payment</span>
                   <strong id="due-today-total">$0</strong>
                 </div>
                 <div>
@@ -186,12 +186,14 @@
                 <span>Card &middot; Apple Pay &middot; Google Pay &middot; Cash App Pay</span>
                 <strong id="square-payment-amount">$0 due today</strong>
                 <a class="button is-disabled" id="square-pay-button" href="#" aria-disabled="true">Add Items First</a>
-                <p>Square will open with the exact Pay today total after the secure checkout connection is configured.</p>
+                <p id="square-pay-note">Add your bakes, name, contact, and pickup date before Square opens.</p>
               </div>
 
               <div class="payment-rule">
-                Your bake day is reserved after full payment is received.
+                Ready-priced items can be paid through Square. Starter-price or custom items are confirmed before payment.
               </div>
+
+              <button class="add-button copy-request-button" id="copy-request" type="button">Copy Order Request</button>
 
               <p class="status" id="form-status" aria-live="polite"></p>
             </aside>
