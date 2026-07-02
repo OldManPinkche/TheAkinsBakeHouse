@@ -11,7 +11,8 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
-        "npm:netlify-cli@^26.1.0"
+        "npm:netlify-cli@^26.1.0",
+        "npm:wrangler@^4.104.0"
       ]
     }
   }

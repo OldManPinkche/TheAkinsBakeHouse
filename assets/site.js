@@ -25,6 +25,13 @@ const dynamicSquareCheckoutEndpoint = "https://akins-square-checkout.cmhawkins29
 const orderHistoryKey = "akinsBakeHouseOrderHistory";
 const orderCartKey = "akinsBakeHouseCurrentOrder";
 let squareCheckoutInProgress = false;
+let checkoutValidationVisible = false;
+
+const requiredCheckoutDetails = [
+  { selector: "#customer-name", label: "name" },
+  { selector: "#customer-contact", label: "phone or email" },
+  { selector: "#pickup-date", label: "pickup date" }
+];
 
 function getFieldValue(selector) {
   const field = document.querySelector(selector);
@@ -35,10 +42,79 @@ function formatMoney(amount) {
   return `$${amount.toFixed(amount % 1 === 0 ? 0 : 2)}`;
 }
 
+function getItemActionLabel(itemName, fallback = "Add") {
+  const item = priceBook[itemName];
+
+  return item?.starting ? "Request Quote" : fallback;
+}
+
+function formatDetailList(details) {
+  const labels = details.map((detail) => detail.label);
+
+  if (labels.length <= 1) {
+    return labels[0] || "order details";
+  }
+
+  if (labels.length === 2) {
+    return `${labels[0]} and ${labels[1]}`;
+  }
+
+  return `${labels.slice(0, -1).join(", ")}, and ${labels.at(-1)}`;
+}
+
+function getRequiredCheckoutFields() {
+  return requiredCheckoutDetails
+    .map((detail) => ({
+      ...detail,
+      field: document.querySelector(detail.selector)
+    }))
+    .filter((detail) => detail.field);
+}
+
+function getMissingCheckoutDetails() {
+  return getRequiredCheckoutFields().filter(({ field }) => {
+    if (!field.value.trim()) {
+      return true;
+    }
+
+    return typeof field.checkValidity === "function" && !field.checkValidity();
+  });
+}
+
+function updateCheckoutFieldStates(showErrors = checkoutValidationVisible) {
+  getRequiredCheckoutFields().forEach(({ field }) => {
+    const hasValue = field.value.trim();
+    const isInvalid = !hasValue || (typeof field.checkValidity === "function" && !field.checkValidity());
+    field.setAttribute("aria-invalid", String(Boolean(showErrors && isInvalid)));
+  });
+}
+
+function setPickupDateMinimum() {
+  const pickupDate = document.querySelector("#pickup-date");
+
+  if (!pickupDate) {
+    return;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  pickupDate.min = today.toISOString().slice(0, 10);
+}
+
 function buildCheckoutUrl(item) {
   const url = new URL("checkout.html", window.location.href);
   url.searchParams.set("item", item);
   return url.href;
+}
+
+function setupStartingPriceButtons() {
+  document.querySelectorAll("[data-item-name]").forEach((button) => {
+    const itemName = button.dataset.itemName;
+
+    if (priceBook[itemName]?.starting) {
+      button.textContent = getItemActionLabel(itemName, button.textContent);
+    }
+  });
 }
 
 function readSavedCart() {
@@ -170,7 +246,7 @@ function renderMenuCart() {
     chip.className = "item-chip";
     label.textContent = `${line.item}${line.quantity > 1 ? ` x${line.quantity}` : ""} - ${formatMoney(line.lineTotal)}`;
     remove.type = "button";
-    remove.textContent = "x";
+    remove.textContent = "Remove";
     remove.setAttribute("aria-label", `Remove one ${line.item}`);
     remove.addEventListener("click", () => removeSelectedItem(line.item));
 
@@ -227,12 +303,12 @@ function getCheckoutSummary() {
 
   const total = lines.reduce((sum, line) => sum + line.lineTotal, 0);
 
-        return {
-          lines,
-          total,
-          dueToday: total,
-          hasStartingPrice: lines.some((line) => line.info.starting)
-        };
+  return {
+    lines,
+    total,
+    dueToday: total,
+    hasStartingPrice: lines.some((line) => line.info.starting)
+  };
 }
 
 function buildOrderNote(summary = getCheckoutSummary()) {
@@ -266,30 +342,71 @@ function buildSquareCheckoutPayload(summary = getCheckoutSummary()) {
   };
 }
 
+function buildQuoteRequestUrl() {
+  const subject = encodeURIComponent("The Akins Bake House Final Total Request");
+  const body = encodeURIComponent(buildRequestMessage());
+
+  return `mailto:${bakeHouseEmail}?subject=${subject}&body=${body}`;
+}
+
 function updateSquareCheckout(summary = getCheckoutSummary()) {
   const squarePaymentAmount = document.querySelector("#square-payment-amount");
   const squareOrderNote = document.querySelector("#square-order-note");
   const squarePayButton = document.querySelector("#square-pay-button");
+  const squarePayNote = document.querySelector("#square-pay-note");
   const squareStatus = document.querySelector("#square-status");
 
   if (!squarePaymentAmount || !squareOrderNote || !squarePayButton || !squareStatus) {
     return;
   }
 
-  squarePaymentAmount.textContent = `${formatMoney(summary.dueToday)} due today`;
+  const missingDetails = getMissingCheckoutDetails();
+  const needsFinalTotal = summary.hasStartingPrice;
+  const canStartSquare = Boolean(summary.lines.length && !missingDetails.length && !needsFinalTotal);
+  const canRequestFinalTotal = Boolean(summary.lines.length && !missingDetails.length && needsFinalTotal);
+  const buttonDisabled = (!canStartSquare && !canRequestFinalTotal) || squareCheckoutInProgress;
+
+  updateCheckoutFieldStates();
+  squarePaymentAmount.textContent = needsFinalTotal
+    ? `${formatMoney(summary.total)} starter estimate`
+    : `${formatMoney(summary.dueToday)} due today`;
   squareOrderNote.textContent = summary.lines.length ? buildOrderNote(summary) : "Add items to generate a note";
 
-  squarePayButton.classList.toggle("is-disabled", !summary.lines.length);
-  squarePayButton.setAttribute("aria-disabled", String(!summary.lines.length));
-  squarePayButton.href = summary.lines.length ? dynamicSquareCheckoutEndpoint : "#";
+  squarePayButton.classList.toggle("is-disabled", buttonDisabled);
+  squarePayButton.setAttribute("aria-disabled", String(buttonDisabled));
+  squarePayButton.href = canStartSquare
+    ? dynamicSquareCheckoutEndpoint
+    : canRequestFinalTotal
+      ? buildQuoteRequestUrl()
+      : "#";
   squarePayButton.removeAttribute("target");
   squarePayButton.removeAttribute("rel");
   squarePayButton.textContent = squareCheckoutInProgress
     ? "Creating Square Checkout..."
     : summary.lines.length
-      ? `Pay ${formatMoney(summary.dueToday)} With Square`
+      ? missingDetails.length
+        ? "Complete Details First"
+        : needsFinalTotal
+          ? "Request Final Total"
+          : `Pay ${formatMoney(summary.dueToday)} With Square`
       : "Add Items First";
-  squareStatus.textContent = "Exact checkout";
+  squareStatus.textContent = summary.lines.length
+    ? missingDetails.length
+      ? "Details needed"
+      : needsFinalTotal
+        ? "Quote needed"
+        : "Ready to pay"
+    : "Add items";
+
+  if (squarePayNote) {
+    squarePayNote.textContent = !summary.lines.length
+      ? "Add at least one bake before opening Square checkout."
+      : missingDetails.length
+        ? `Add ${formatDetailList(missingDetails)} before opening Square checkout.`
+        : needsFinalTotal
+          ? "This order includes starter pricing. Send the details first so the final total can be confirmed before payment."
+          : "Square will open with the exact Pay today total for this order.";
+  }
 }
 
 function updateCheckoutSummary() {
@@ -334,13 +451,13 @@ function updateCheckoutSummary() {
     checkoutLines.append(row);
   });
 
-  checkoutTotal.textContent = formatMoney(summary.total);
-  dueTodayTotal.textContent = formatMoney(summary.dueToday);
+  checkoutTotal.textContent = summary.hasStartingPrice ? `${formatMoney(summary.total)}+` : formatMoney(summary.total);
+  dueTodayTotal.textContent = summary.hasStartingPrice ? "After quote" : formatMoney(summary.dueToday);
   if (balanceTotal) {
-    balanceTotal.textContent = "$0";
+    balanceTotal.textContent = summary.hasStartingPrice ? "TBD" : "$0";
   }
   checkoutNote.textContent = summary.hasStartingPrice
-    ? "Estimated total uses starter pricing. Final total may change for size, decoration, flavor, or serving count."
+    ? "Estimated total uses starter pricing. Send the order details first so the final total can be confirmed before payment."
     : "Total is based on selected menu prices. Full payment is due when the order is confirmed.";
 }
 
@@ -389,7 +506,7 @@ function renderSelectedItems() {
     chip.className = "item-chip";
     label.textContent = `${item}${quantity > 1 ? ` x${quantity}` : ""} - ${formatMoney(info.price * quantity)}`;
     remove.type = "button";
-    remove.textContent = "x";
+    remove.textContent = "Remove";
     remove.setAttribute("aria-label", `Remove one ${item}`);
     remove.addEventListener("click", () => removeSelectedItem(item));
 
@@ -503,8 +620,12 @@ function buildRequestMessage() {
     `Pickup date: ${date}`,
     `Occasion: ${occasion}`,
     `Estimated total: ${formatMoney(summary.total)}${summary.hasStartingPrice ? " (starter pricing)" : ""}`,
-    `Full payment due: ${formatMoney(summary.dueToday)}`,
-    "Square checkout: Exact checkout link created at payment time",
+    summary.hasStartingPrice
+      ? "Payment: Final total should be confirmed before payment because this order includes starter pricing."
+      : `Full payment due: ${formatMoney(summary.dueToday)}`,
+    summary.hasStartingPrice
+      ? "Square checkout: Send a final total first, then pay after confirmation."
+      : "Square checkout: Exact checkout link created at payment time",
     `Square order note: ${buildOrderNote(summary)}`,
     "Payment options: card, digital wallet, or Cash App Pay when enabled in Square",
     "Bake schedule: start after full payment is confirmed received",
@@ -551,6 +672,35 @@ async function createExactSquareCheckout() {
     if (statusMessage) {
       statusMessage.textContent = "Add at least one item before opening Square checkout.";
     }
+    return;
+  }
+
+  checkoutValidationVisible = true;
+  const missingDetails = getMissingCheckoutDetails();
+
+  if (missingDetails.length) {
+    updateCheckoutFieldStates(true);
+    updateSquareCheckout(summary);
+
+    if (statusMessage) {
+      statusMessage.textContent = `Add ${formatDetailList(missingDetails)} before opening Square checkout.`;
+    }
+
+    missingDetails[0].field.focus();
+
+    if (typeof missingDetails[0].field.reportValidity === "function") {
+      missingDetails[0].field.reportValidity();
+    }
+
+    return;
+  }
+
+  if (summary.hasStartingPrice) {
+    if (statusMessage) {
+      statusMessage.textContent = "Opening an email request so the final total can be confirmed before payment.";
+    }
+
+    window.location.href = buildQuoteRequestUrl();
     return;
   }
 
@@ -778,6 +928,8 @@ function setupCheckout() {
     return;
   }
 
+  setPickupDateMinimum();
+
   new URLSearchParams(window.location.search).getAll("item").forEach((item) => {
     if (priceBook[item]) {
       selectedItems.push(item);
@@ -800,6 +952,7 @@ function setupCheckout() {
 
   orderForm.querySelectorAll("input, select, textarea").forEach((field) => {
     field.addEventListener("input", () => {
+      updateCheckoutFieldStates(checkoutValidationVisible);
       updateCheckoutSummary();
       updateEmailLink();
 
@@ -808,6 +961,7 @@ function setupCheckout() {
       }
     });
     field.addEventListener("change", () => {
+      updateCheckoutFieldStates(checkoutValidationVisible);
       updateCheckoutSummary();
       updateEmailLink();
 
@@ -851,6 +1005,7 @@ document.querySelectorAll("[data-item-name]").forEach((button) => {
 });
 
 loadSavedCart();
+setupStartingPriceButtons();
 setupMenuFilters();
 setupMenuCart();
 setupCheckout();

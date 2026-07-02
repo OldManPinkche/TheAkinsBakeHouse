@@ -22,8 +22,22 @@ const MENU_PRICES = {
   "Banana Pudding": 1000
 };
 
+const STARTING_PRICE_ITEMS = new Set([
+  "Weekend Favorites Box",
+  "Cozy Morning Box",
+  "Cookie Cakes",
+  "Butterfinger Cake",
+  "Cheesecake",
+  "Banana Pudding"
+]);
+
+const ALLOWED_RETURN_ORIGINS = new Set([
+  "https://theakinsbakehouse.com",
+  "https://www.theakinsbakehouse.com"
+]);
+
 const headers = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": "https://theakinsbakehouse.com",
   "Access-Control-Allow-Headers": "Content-Type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Max-Age": "86400",
@@ -46,6 +60,46 @@ function empty(statusCode) {
 
 function cleanText(value, fallback = "") {
   return String(value || fallback).replace(/\s+/g, " ").trim();
+}
+
+function isLocalReturnOrigin(url) {
+  return url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname);
+}
+
+function cleanReturnUrl(value, fallback) {
+  try {
+    const url = new URL(cleanText(value, fallback));
+
+    if (ALLOWED_RETURN_ORIGINS.has(url.origin) || isLocalReturnOrigin(url)) {
+      return url.href;
+    }
+  } catch (error) {
+    return fallback;
+  }
+
+  return fallback;
+}
+
+function isValidPickupDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const pickupDate = new Date(`${value}T00:00:00Z`);
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+
+  return !Number.isNaN(pickupDate.getTime()) && pickupDate >= today;
+}
+
+function getCheckoutDetails(payload) {
+  return {
+    customerName: cleanText(payload.customer?.name),
+    customerContact: cleanText(payload.customer?.contact),
+    pickupDate: cleanText(payload.pickupDate),
+    occasion: cleanText(payload.occasion, "Not provided"),
+    notes: cleanText(payload.notes, "None").slice(0, 180)
+  };
 }
 
 function asQuantity(value) {
@@ -140,12 +194,26 @@ async function createCheckout(request, env) {
     return json(400, { message: "Add at least one item before paying." });
   }
 
+  const checkoutDetails = getCheckoutDetails(payload);
+
+  if (!checkoutDetails.customerName || checkoutDetails.customerContact.length < 5 || !isValidPickupDate(checkoutDetails.pickupDate)) {
+    return json(400, {
+      message: "Add a valid name, phone or email, and pickup date before paying."
+    });
+  }
+
   const lineItems = [];
 
   for (const requestedItem of requestedItems) {
     const name = cleanText(requestedItem.name);
     const quantity = asQuantity(requestedItem.quantity);
     const price = MENU_PRICES[name];
+
+    if (STARTING_PRICE_ITEMS.has(name)) {
+      return json(400, {
+        message: `"${name}" needs a final total before Square checkout can be created.`
+      });
+    }
 
     if (!price || !quantity) {
       return json(400, { message: `The item "${name || "unknown"}" could not be checked out.` });
@@ -167,20 +235,15 @@ async function createCheckout(request, env) {
   }
 
   const orderReference = cleanText(payload.orderReference, "The Akins Bake House order").slice(0, 120);
-  const customerName = cleanText(payload.customer?.name, "Customer");
-  const customerContact = cleanText(payload.customer?.contact, "Not provided");
-  const pickupDate = cleanText(payload.pickupDate, "Not provided");
-  const occasion = cleanText(payload.occasion, "Not provided");
-  const notes = cleanText(payload.notes, "None").slice(0, 180);
-  const returnUrl = cleanText(payload.returnUrl, env.SITE_URL || "https://theakinsbakehouse.com");
+  const returnUrl = cleanReturnUrl(payload.returnUrl, env.SITE_URL || "https://theakinsbakehouse.com");
   const paymentNote = [
     WEBSITE_ORDER_SOURCE,
     orderReference,
-    `Customer: ${customerName}`,
-    `Contact: ${customerContact}`,
-    `Pickup: ${pickupDate}`,
-    `Occasion: ${occasion}`,
-    `Notes: ${notes}`
+    `Customer: ${checkoutDetails.customerName}`,
+    `Contact: ${checkoutDetails.customerContact}`,
+    `Pickup: ${checkoutDetails.pickupDate}`,
+    `Occasion: ${checkoutDetails.occasion}`,
+    `Notes: ${checkoutDetails.notes}`
   ].join(" | ").slice(0, 500);
 
   const squarePayload = {
