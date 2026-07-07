@@ -11,7 +11,7 @@ const MENU_PRICES = {
   "Peanut Butter Cookies": 2000,
   "Chocolate Chip Cookies": 2000,
   "Cookie Cakes": 3000,
-  "Cake Pops": 2800,
+  "Cake Pops": 3000,
   "Butterfinger Cake": 2000,
   Cupcakes: 2500,
   Cheesecake: 2000,
@@ -19,16 +19,12 @@ const MENU_PRICES = {
   "Banana Bread": 1000,
   "Pumpkin Bread": 1000,
   "Coconut Cream Pie": 2000,
-  "Banana Pudding": 1000
+  "Banana Pudding": 1500
 };
 
 const STARTING_PRICE_ITEMS = new Set([
   "Weekend Favorites Box",
-  "Cozy Morning Box",
-  "Cookie Cakes",
-  "Butterfinger Cake",
-  "Cheesecake",
-  "Banana Pudding"
+  "Cozy Morning Box"
 ]);
 
 const ALLOWED_RETURN_ORIGINS = new Set([
