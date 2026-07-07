@@ -6,16 +6,16 @@ const menuItems = [
   { name: "No Bake Cookies", price: 20, label: "per dozen", starting: false },
   { name: "Peanut Butter Cookies", price: 20, label: "per dozen", starting: false },
   { name: "Chocolate Chip Cookies", price: 20, label: "per dozen", starting: false },
-  { name: "Cookie Cakes", price: 30, label: "starting at", starting: true },
-  { name: "Cake Pops", price: 28, label: "per dozen", starting: false },
-  { name: "Butterfinger Cake", price: 20, label: "starting at", starting: true },
+  { name: "Cookie Cakes", price: 30, label: "each", starting: false },
+  { name: "Cake Pops", price: 30, label: "per dozen", starting: false },
+  { name: "Butterfinger Cake", price: 20, label: "each", starting: false },
   { name: "Cupcakes", price: 25, label: "per dozen", starting: false },
-  { name: "Cheesecake", price: 20, label: "starting at", starting: true },
+  { name: "Cheesecake", price: 20, label: "each", starting: false },
   { name: "Cinnamon Rolls", price: 25, label: "per dozen", starting: false },
   { name: "Banana Bread", price: 10, label: "per loaf", starting: false },
   { name: "Pumpkin Bread", price: 10, label: "per loaf", starting: false },
   { name: "Coconut Cream Pie", price: 20, label: "per pie", starting: false },
-  { name: "Banana Pudding", price: 10, label: "starting at", starting: true }
+  { name: "Banana Pudding", price: 15, label: "each", starting: false }
 ];
 
 const priceBook = Object.fromEntries(menuItems.map((item) => [item.name, item]));
