@@ -7,13 +7,13 @@
     <meta name="description" content="The Akins Bake House checkout page for selecting bakes, reviewing totals, and paying online.">
     <link rel="canonical" href="https://theakinsbakehouse.com/checkout.html">
     <meta property="og:title" content="Checkout | The Akins Bake House">
-    <meta property="og:description" content="Choose bakes, add pickup details, and pay securely through Square.">
+    <meta property="og:description" content="The Akins Bake House checkout page for selecting bakes, reviewing totals, and paying online.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://theakinsbakehouse.com/checkout.html">
-    <meta property="og:image" content="https://theakinsbakehouse.com/assets/weekend-favorites-box.webp">
+    <meta property="og:image" content="https://theakinsbakehouse.com/assets/akins-logo.png">
     <link rel="icon" href="assets/akins-logo.png">
     <link rel="stylesheet" href="assets/site.css">
-    <script src="assets/site.js?v=2026-boutique-theme" defer></script>
+    <script src="assets/site.js?v=final-total-flow-2" defer></script>
   </head>
 
   <body>
@@ -32,50 +32,46 @@
         <a href="menu.html">Menu</a>
         <a href="checkout.html" aria-current="page">Checkout</a>
       </nav>
-
-      <a class="header-cta" href="checkout.html">Order Now</a>
     </header>
 
     <main id="top">
       <section class="checkout-shell" id="order" aria-labelledby="order-title">
-        <div class="checkout-heading">
-          <div>
-            <p class="section-kicker">Checkout</p>
-            <h1 id="order-title">Build your bake order.</h1>
-            <p>Choose your treats, add pickup details, and pay securely through Square when the total is ready.</p>
+        <div class="section-inner">
+          <div class="checkout-heading">
+            <div>
+              <p class="section-kicker">Simple Checkout</p>
+              <h1 id="order-title">Order your bakes.</h1>
+              <p>Choose your items, add pickup details, and pay securely through Square when the final total is ready.</p>
+            </div>
+            <a class="button secondary" href="menu.html">Back To Menu</a>
           </div>
-          <a class="button secondary" href="menu.html">Back To Menu</a>
-        </div>
 
-        <form class="simple-checkout" id="order-form">
-          <div class="checkout-builder">
-            <section class="checkout-step" aria-labelledby="items-step-title">
-              <div class="step-heading">
-                <span>1</span>
-                <div>
-                  <h2 id="items-step-title">Choose your bakes</h2>
-                  <p>Add once for each dozen, loaf, pie, cake, pudding, or bundle.</p>
+          <form class="simple-checkout" id="order-form">
+            <div class="checkout-builder">
+              <section class="checkout-step" aria-labelledby="items-step-title">
+                <div class="step-heading">
+                  <span>1</span>
+                  <div>
+                    <h2 id="items-step-title">Choose your bakes</h2>
+                    <p>Add once for each dozen, loaf, pie, cake, or bundle.</p>
+                  </div>
                 </div>
-              </div>
 
               <div class="quick-add">
                 <label>
                   Menu Item
                   <select id="menu-item" name="menu-item">
                     <option value="">Choose an item</option>
-                    <option>Weekend Favorites Box</option>
-                    <option>Cozy Morning Box</option>
-                    <option>Cookie Drop</option>
-                    <option>Cinnamon Rolls</option>
-                    <option>Pumpkin Bread</option>
-                    <option>No Bake Cookies</option>
                     <option>Oatmeal Raisin Cookies</option>
+                    <option>No Bake Cookies</option>
                     <option>Peanut Butter Cookies</option>
                     <option>Chocolate Chip Cookies</option>
                     <option>Cookie Cakes</option>
                     <option>Cake Pops</option>
                     <option>Coconut Cream Pie</option>
+                    <option>Cinnamon Rolls</option>
                     <option>Banana Bread</option>
+                    <option>Pumpkin Bread</option>
                     <option>Butterfinger Cake</option>
                     <option>Cupcakes</option>
                     <option>Cheesecake</option>
@@ -84,128 +80,128 @@
                 </label>
                 <button class="button" id="add-selected-item" type="button">Add Item</button>
               </div>
-
               <div class="selected-bakes" id="selected-bakes" aria-live="polite"></div>
-            </section>
+              </section>
 
-            <section class="checkout-step" aria-labelledby="details-step-title">
-              <div class="step-heading">
-                <span>2</span>
-                <div>
-                  <h2 id="details-step-title">Pickup details</h2>
-                  <p>Please order 48-72 hours ahead when possible. Add notes for timing, colors, serving count, or custom details.</p>
-                </div>
-              </div>
-
-              <div class="field-grid">
-                <label>
-                  Name
-                  <input id="customer-name" name="customer-name" autocomplete="name" placeholder="Your name" required>
-                </label>
-                <label>
-                  Phone or Email
-                  <input id="customer-contact" name="customer-contact" autocomplete="email" placeholder="Best way to reach you" required>
-                </label>
-              </div>
-
-              <div class="returning-customer" aria-labelledby="returning-title">
-                <div class="returning-top">
+              <section class="checkout-step" aria-labelledby="details-step-title">
+                <div class="step-heading">
+                  <span>2</span>
                   <div>
-                    <span>Returning customer</span>
-                    <h3 id="returning-title">Reorder from this device.</h3>
-                    <p>Past orders saved here can show up when you use the same phone or email.</p>
-                  </div>
-                  <div class="returning-actions">
-                    <button class="add-button" id="check-returning-order" type="button">Check Past Orders</button>
-                    <button class="add-button" id="save-order-history" type="button">Save This Order</button>
+                    <h2 id="details-step-title">Pickup details</h2>
+                    <p>Tell us who the order is for and when you need it. Please order 48-72 hours ahead when possible.</p>
                   </div>
                 </div>
-                <div class="returning-orders" id="returning-orders" aria-live="polite">
-                  <span class="empty-state">Past orders saved on this device will show here.</span>
+
+                <div class="field-grid">
+                  <label>
+                    Name
+                    <input id="customer-name" name="customer-name" autocomplete="name" placeholder="Your name" required>
+                  </label>
+                  <label>
+                    Phone or Email
+                    <input id="customer-contact" name="customer-contact" autocomplete="email" placeholder="Best way to reach you" required>
+                  </label>
+                </div>
+
+                <div class="returning-customer" aria-labelledby="returning-title">
+                  <div class="returning-top">
+                    <div>
+                      <span>Returning customer</span>
+                      <h3 id="returning-title">Use the same phone or email.</h3>
+                      <p>Past orders saved on this device can show here, making it easier to reorder favorites next time.</p>
+                    </div>
+                    <div class="returning-actions">
+                      <button class="add-button" id="check-returning-order" type="button">Check Past Orders</button>
+                      <button class="add-button" id="save-order-history" type="button">Save This Order</button>
+                    </div>
+                  </div>
+                  <div class="returning-orders" id="returning-orders" aria-live="polite">
+                    <span class="empty-state">Past orders saved on this device will show here.</span>
+                  </div>
+                </div>
+
+                <div class="field-grid">
+                  <label>
+                    Pickup Date
+                    <input id="pickup-date" name="pickup-date" type="date" required>
+                  </label>
+                  <label>
+                    Occasion
+                    <input id="occasion" name="occasion" placeholder="Birthday, shower, weekend treat">
+                  </label>
+                </div>
+
+                <label>
+                  Notes
+                  <textarea id="notes" name="notes" placeholder="Flavors, colors, serving count, pickup time, allergies, or custom details"></textarea>
+                </label>
+              </section>
+
+              <div class="checkout-help">
+                <strong>Need help?</strong>
+                <span>Email <a href="mailto:theakinsbakehouse@yahoo.com">theakinsbakehouse@yahoo.com</a>. Allergy note: bakes may share a kitchen with wheat, dairy, eggs, peanuts, and tree nuts.</span>
+              </div>
+            </div>
+
+            <aside class="square-summary" aria-labelledby="payment-title">
+              <div class="square-summary-header">
+                <div class="square-logo-mark" aria-hidden="true">S</div>
+                <div>
+                  <span>Secure payment</span>
+                  <h2 id="payment-title">Square Checkout</h2>
+                </div>
+                <em class="payment-status" id="square-status">Exact checkout</em>
+              </div>
+
+              <div class="summary-lines" id="checkout-lines" aria-live="polite"></div>
+
+              <div class="square-totals">
+                <div>
+                  <span>Order total</span>
+                  <strong id="checkout-total">$0</strong>
+                </div>
+                <div class="payment-due">
+                  <span>Payment</span>
+                  <strong id="due-today-total">$0</strong>
+                </div>
+                <div>
+                  <span>Balance at pickup</span>
+                  <strong id="balance-total">$0</strong>
                 </div>
               </div>
 
-              <div class="field-grid">
-                <label>
-                  Pickup Date
-                  <input id="pickup-date" name="pickup-date" type="date" required>
-                </label>
-                <label>
-                  Occasion
-                  <input id="occasion" name="occasion" placeholder="Birthday, shower, weekend treat">
-                </label>
+              <p class="summary-note" id="checkout-note">
+                Add items to see what is due today.
+              </p>
+
+              <div class="square-order-reference">
+                <span>Order reference</span>
+                <strong id="square-order-note">Add items to generate a note</strong>
               </div>
 
-              <label>
-                Notes
-                <textarea id="notes" name="notes" placeholder="Flavors, colors, serving count, pickup time, allergies, or custom details"></textarea>
-              </label>
-            </section>
-
-            <div class="checkout-help">
-              <strong>Need help?</strong>
-              <span>Email <a href="mailto:theakinsbakehouse@yahoo.com">theakinsbakehouse@yahoo.com</a>. Allergy note: bakes may share a kitchen with wheat, dairy, eggs, peanuts, and tree nuts.</span>
-            </div>
-          </div>
-
-          <aside class="square-summary" aria-labelledby="payment-title">
-            <div class="square-summary-header">
-              <div class="square-logo-mark" aria-hidden="true">S</div>
-              <div>
-                <span>Secure payment</span>
-                <h2 id="payment-title">Square Checkout</h2>
+              <div class="square-pay-area">
+                <span>Card &middot; Apple Pay &middot; Google Pay &middot; Cash App Pay</span>
+                <strong id="square-payment-amount">$0 due today</strong>
+                <a class="button is-disabled" id="square-pay-button" href="#" aria-disabled="true">Add Items First</a>
+                <p id="square-pay-note">Add your bakes, name, contact, and pickup date before Square opens.</p>
               </div>
-              <em class="payment-status" id="square-status">Add items</em>
-            </div>
 
-            <div class="summary-lines" id="checkout-lines" aria-live="polite"></div>
-
-            <div class="square-totals">
-              <div>
-                <span>Order total</span>
-                <strong id="checkout-total">$0</strong>
+              <div class="payment-rule">
+                Regular menu items can be paid through Square. Bundle or custom orders are confirmed before payment.
               </div>
-              <div class="payment-due">
-                <span>Payment</span>
-                <strong id="due-today-total">$0</strong>
-              </div>
-              <div>
-                <span>Balance at pickup</span>
-                <strong id="balance-total">$0</strong>
-              </div>
-            </div>
 
-            <p class="summary-note" id="checkout-note">
-              Add items to see what is due today.
-            </p>
+              <button class="add-button copy-request-button" id="copy-request" type="button">Copy Order Request</button>
 
-            <div class="square-order-reference">
-              <span>Order reference</span>
-              <strong id="square-order-note">Add items to generate a note</strong>
-            </div>
-
-            <div class="square-pay-area">
-              <span>Card &middot; Apple Pay &middot; Google Pay &middot; Cash App Pay</span>
-              <strong id="square-payment-amount">$0 due today</strong>
-              <a class="button is-disabled" id="square-pay-button" href="#" aria-disabled="true">Add Items First</a>
-              <p id="square-pay-note">Add your bakes, name, contact, and pickup date before Square opens.</p>
-            </div>
-
-            <div class="payment-rule">
-              Regular menu items can be paid through Square. Bundle or custom orders are confirmed before payment.
-            </div>
-
-            <button class="add-button copy-request-button" id="copy-request" type="button">Copy Order Request</button>
-
-            <p class="status" id="form-status" aria-live="polite"></p>
-          </aside>
-        </form>
+              <p class="status" id="form-status" aria-live="polite"></p>
+            </aside>
+          </form>
+        </div>
       </section>
     </main>
 
     <footer class="footer">
       <img src="assets/akins-logo.png" alt="">
-      <p>The Akins Bake House &middot; Small-batch sweets in Tryon, Oklahoma.</p>
+      <p>The Akins Bake House &middot; Freshly baked. Made with heart.</p>
       <div class="footer-links" aria-label="Contact links">
         <a href="https://theakinsbakehouse.com">TheAkinsBakeHouse.com</a>
         <a href="mailto:theakinsbakehouse@yahoo.com">theakinsbakehouse@yahoo.com</a>
