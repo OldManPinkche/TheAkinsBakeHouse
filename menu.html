@@ -7,13 +7,13 @@
     <meta name="description" content="The Akins Bake House menu and starter prices for cookies, breads, cakes, pies, cheesecake, cinnamon rolls, and banana pudding.">
     <link rel="canonical" href="https://theakinsbakehouse.com/menu.html">
     <meta property="og:title" content="Menu &amp; Pricing | The Akins Bake House">
-    <meta property="og:description" content="The Akins Bake House menu and starter prices for cookies, breads, cakes, pies, cheesecake, cinnamon rolls, and banana pudding.">
+    <meta property="og:description" content="Browse bakes, prices, and favorites from The Akins Bake House.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://theakinsbakehouse.com/menu.html">
-    <meta property="og:image" content="https://theakinsbakehouse.com/assets/akins-logo.png">
+    <meta property="og:image" content="https://theakinsbakehouse.com/assets/weekend-favorites-box.webp">
     <link rel="icon" href="assets/akins-logo.png">
     <link rel="stylesheet" href="assets/site.css">
-    <script src="assets/site.js?v=final-total-flow-2" defer></script>
+    <script src="assets/site.js?v=2026-boutique-theme" defer></script>
   </head>
 
   <body>
@@ -32,25 +32,29 @@
         <a href="menu.html" aria-current="page">Menu</a>
         <a href="checkout.html">Checkout</a>
       </nav>
+
+      <a class="header-cta" href="checkout.html">Order Now</a>
     </header>
 
     <main id="top">
       <section class="page-hero" aria-labelledby="menu-page-title">
         <div class="page-hero-inner">
           <div class="page-hero-copy">
-            <p class="section-kicker">Menu & Pricing</p>
-            <h1 id="menu-page-title">Pick your bake.</h1>
+            <p class="section-kicker">Menu &amp; Pricing</p>
+            <h1 id="menu-page-title">Choose your sweet lineup.</h1>
             <p class="hero-copy">
-              Browse the full bake house menu, add your bakes to checkout, and send the order details when you are ready.
+              Add bakes as you browse, then review everything in checkout. Starter-price bundles and custom details are confirmed before payment.
             </p>
             <div class="page-actions">
               <a class="button" href="checkout.html">Go To Checkout</a>
+              <a class="button secondary" href="index.html#how-to-order">How Ordering Works</a>
             </div>
           </div>
+
           <div class="page-hero-card">
-            <img class="page-hero-food" src="assets/weekend-favorites-box.webp" alt="Cinnamon rolls, pumpkin bread, and no bake cookies arranged together">
-            <strong>Start with the customer favorites.</strong>
-            <p>Popular bakes are easy to add below. Starter-price and custom orders are confirmed before payment.</p>
+            <img src="assets/weekend-favorites-box.webp" alt="Cinnamon rolls, pumpkin bread, and no bake cookies arranged together">
+            <strong>Start with a favorite box.</strong>
+            <p>Weekend Favorites brings together cinnamon rolls, pumpkin bread, and no bake cookies for an easy shareable order.</p>
           </div>
         </div>
       </section>
@@ -59,11 +63,11 @@
         <div class="section-inner">
           <div class="section-heading">
             <div>
-              <p class="section-kicker">Full Menu</p>
-              <h2 id="menu-title">All bakes and prices.</h2>
+              <p class="section-kicker">Customer Favorites</p>
+              <h2 id="menu-title">The fastest picks for a good table.</h2>
             </div>
             <p>
-              Filter by category or scan the whole board. Cinnamon rolls, pumpkin bread, and no bake cookies are marked as favorites.
+              These are the easiest bakes to add first. You can keep browsing by category below.
             </p>
           </div>
 
@@ -71,38 +75,32 @@
             <article class="popular-pick">
               <img src="assets/favorite-cinnamon-rolls.webp" alt="Glazed cinnamon rolls on a wooden board">
               <div>
-                <span>Most ordered</span>
+                <span>Most requested</span>
                 <h3>Cinnamon Rolls</h3>
                 <p>$25 / dozen</p>
               </div>
               <button class="add-button" type="button" data-item-name="Cinnamon Rolls">Add</button>
             </article>
+
             <article class="popular-pick">
               <img src="assets/favorite-pumpkin-bread.webp" alt="Pumpkin bread loaves in patterned dishes">
               <div>
-                <span>Cozy favorite</span>
+                <span>Cozy loaf</span>
                 <h3>Pumpkin Bread</h3>
                 <p>$10 / loaf</p>
               </div>
               <button class="add-button" type="button" data-item-name="Pumpkin Bread">Add</button>
             </article>
+
             <article class="popular-pick">
               <img src="assets/favorite-no-bake-cookies.webp" alt="No bake cookies arranged on a wooden board">
               <div>
-                <span>By the dozen</span>
+                <span>Classic dozen</span>
                 <h3>No Bake Cookies</h3>
                 <p>$20 / dozen</p>
               </div>
               <button class="add-button" type="button" data-item-name="No Bake Cookies">Add</button>
             </article>
-          </div>
-
-          <div class="menu-controls" aria-label="Filter menu categories">
-            <button class="is-active" type="button" data-menu-filter="all" aria-pressed="true">All</button>
-            <button type="button" data-menu-filter="cookies" aria-pressed="false">Cookies</button>
-            <button type="button" data-menu-filter="cakes" aria-pressed="false">Cakes</button>
-            <button type="button" data-menu-filter="breads" aria-pressed="false">Breads</button>
-            <button type="button" data-menu-filter="pies" aria-pressed="false">Pies & Puddings</button>
           </div>
 
           <div class="menu-cart" id="menu-cart" aria-live="polite">
@@ -123,11 +121,19 @@
             <p class="status" id="menu-cart-status"></p>
           </div>
 
+          <div class="menu-controls" aria-label="Filter menu categories">
+            <button class="is-active" type="button" data-menu-filter="all" aria-pressed="true">All</button>
+            <button type="button" data-menu-filter="cookies" aria-pressed="false">Cookies</button>
+            <button type="button" data-menu-filter="cakes" aria-pressed="false">Cakes</button>
+            <button type="button" data-menu-filter="breads" aria-pressed="false">Breads</button>
+            <button type="button" data-menu-filter="pies" aria-pressed="false">Pies &amp; Puddings</button>
+          </div>
+
           <div class="menu-board">
             <section class="menu-category" data-menu-category="cookies" aria-labelledby="cookies-title">
               <div class="category-top">
                 <h3 id="cookies-title">Cookies</h3>
-                <span>By the batch</span>
+                <span>By the dozen</span>
               </div>
 
               <article class="bake-item" data-item-category="cookies">
@@ -145,7 +151,7 @@
                     <h3>No Bake Cookies</h3>
                     <span class="mini-favorite">Favorite</span>
                   </div>
-                  <p>Chocolate, peanut butter, and oats with that classic no-bake bite.</p>
+                  <p>Chocolate, peanut butter, and oats with a nostalgic no-bake finish.</p>
                   <span class="price-line">$20 / dozen</span>
                 </div>
                 <button class="add-button" type="button" data-item-name="No Bake Cookies">Add</button>
@@ -154,7 +160,7 @@
               <article class="bake-item" data-item-category="cookies">
                 <div>
                   <h3>Peanut Butter Cookies</h3>
-                  <p>Rich peanut butter flavor with a tender, crisscross top.</p>
+                  <p>Rich peanut butter flavor with a tender crisscross top.</p>
                   <span class="price-line">$20 / dozen</span>
                 </div>
                 <button class="add-button" type="button" data-item-name="Peanut Butter Cookies">Add</button>
@@ -197,7 +203,7 @@
               <article class="bake-item" data-item-category="cakes">
                 <div>
                   <h3>Butterfinger Cake</h3>
-                  <p>Rich cake with candy crunch and a sweet nostalgic finish.</p>
+                  <p>Rich cake with candy crunch and a nostalgic finish.</p>
                   <span class="price-line">$20</span>
                 </div>
                 <button class="add-button" type="button" data-item-name="Butterfinger Cake">Add</button>
@@ -265,7 +271,7 @@
             <section class="menu-category" data-menu-category="pies" aria-labelledby="pies-title">
               <div class="category-top">
                 <h3 id="pies-title">Pies &amp; Puddings</h3>
-                <span>Chilled favorites</span>
+                <span>Classic desserts</span>
               </div>
 
               <article class="bake-item" data-item-category="pies">
@@ -287,6 +293,7 @@
               </article>
             </section>
           </div>
+
           <p class="fine-print">
             Please order 48-72 hours ahead when possible. Allergy note: bakes are made in a home kitchen that may handle wheat, dairy, eggs, peanuts, and tree nuts.
           </p>
@@ -296,7 +303,7 @@
 
     <footer class="footer">
       <img src="assets/akins-logo.png" alt="">
-      <p>The Akins Bake House &middot; Freshly baked. Made with heart.</p>
+      <p>The Akins Bake House &middot; Small-batch sweets in Tryon, Oklahoma.</p>
       <div class="footer-links" aria-label="Contact links">
         <a href="https://theakinsbakehouse.com">TheAkinsBakeHouse.com</a>
         <a href="mailto:theakinsbakehouse@yahoo.com">theakinsbakehouse@yahoo.com</a>
