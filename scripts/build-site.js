@@ -1,9 +1,10 @@
 const fs = require("node:fs");
 const path = require("node:path");
+const rules = require("../assets/order-rules.js");
 
 const rootDir = path.resolve(__dirname, "..");
 const outputDir = path.join(rootDir, "outputs");
-const staticFiles = ["index.html", "menu.html", "checkout.html", "CNAME"];
+const staticFiles = ["index.html", "menu.html", "checkout.html", "CNAME", "robots.txt", "sitemap.xml"];
 const staticDirs = ["assets"];
 
 function copyFile(fileName) {
@@ -11,10 +12,20 @@ function copyFile(fileName) {
   const destination = path.join(outputDir, fileName);
 
   if (!fs.existsSync(source)) {
-    return;
+    throw new Error(`Missing static file: ${fileName}`);
   }
 
-  fs.copyFileSync(source, destination);
+  if (fileName.endsWith(".html")) {
+    const html = fs.readFileSync(source, "utf8").replace(/<([a-z]+)([^>]*\bdata-price-name="([^"]+)"[^>]*)>[^<]*<\/\1>/g, (match, tag, attrs, name) => {
+      if (!rules.hasItem(name)) return match;
+      const item = rules.priceBook[name];
+      const amount = `$${item.price.toFixed(item.price % 1 === 0 ? 0 : 2)}`;
+      return `<${tag}${attrs}>${item.starting ? `Starting at ${amount}` : `${amount} ${item.label}`}</${tag}>`;
+    });
+    fs.writeFileSync(destination, html);
+  } else {
+    fs.copyFileSync(source, destination);
+  }
 }
 
 function copyDir(dirName) {
@@ -22,7 +33,7 @@ function copyDir(dirName) {
   const destination = path.join(outputDir, dirName);
 
   if (!fs.existsSync(source)) {
-    return;
+    throw new Error(`Missing static directory: ${dirName}`);
   }
 
   fs.cpSync(source, destination, {
@@ -30,6 +41,9 @@ function copyDir(dirName) {
   });
 }
 
+if (path.dirname(outputDir) !== rootDir || path.basename(outputDir) !== "outputs") {
+  throw new Error("Build output must be the project's outputs directory.");
+}
 fs.rmSync(outputDir, {
   recursive: true,
   force: true
