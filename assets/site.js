@@ -1,1011 +1,602 @@
-const menuItems = [
-  { name: "Weekend Favorites Box", price: 55, label: "starting at", starting: true },
-  { name: "Cozy Morning Box", price: 35, label: "starting at", starting: true },
-  { name: "Cookie Drop", price: 20, label: "per dozen", starting: false },
-  { name: "Oatmeal Raisin Cookies", price: 20, label: "per dozen", starting: false },
-  { name: "No Bake Cookies", price: 20, label: "per dozen", starting: false },
-  { name: "Peanut Butter Cookies", price: 20, label: "per dozen", starting: false },
-  { name: "Chocolate Chip Cookies", price: 20, label: "per dozen", starting: false },
-  { name: "Cookie Cakes", price: 30, label: "each", starting: false },
-  { name: "Cake Pops", price: 30, label: "per dozen", starting: false },
-  { name: "Butterfinger Cake", price: 20, label: "each", starting: false },
-  { name: "Cupcakes", price: 25, label: "per dozen", starting: false },
-  { name: "Cheesecake", price: 20, label: "each", starting: false },
-  { name: "Cinnamon Rolls", price: 25, label: "per dozen", starting: false },
-  { name: "Banana Bread", price: 10, label: "per loaf", starting: false },
-  { name: "Pumpkin Bread", price: 10, label: "per loaf", starting: false },
-  { name: "Coconut Cream Pie", price: 20, label: "per pie", starting: false },
-  { name: "Banana Pudding", price: 15, label: "each", starting: false }
-];
+"use strict";
+const rules = window.BakeHouseRules;
+const { menuItems, priceBook, limits, hasItem, cartName, cartKey, cartDetails, cartLabel } = rules;
+const $ = selector => document.querySelector(selector);
+const money = amount => `$${amount.toFixed(amount % 1 === 0 ? 0 : 2)}`;
+const value = id => $(`#${id}`)?.value.trim() || "";
+const keys = { cart: "akinsBakeHouseCurrentOrder", history: "akinsBakeHouseOrderHistory", draft: "akinsCheckoutDraft", pending: "akinsPendingPayment", request: "akinsCheckoutRequest" };
+const email = "theakinsbakehouse@yahoo.com";
+const localPreview = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
+const endpoint = localPreview ? window.BakeHouseConfig.localCheckoutEndpoint : window.BakeHouseConfig.checkoutEndpoint;
+let selectedItems = rules.sanitizeCart(readStorage("localStorage", keys.cart, []));
+let busy = false;
+let checkingPayment = false;
+let errorsVisible = false;
+let cartMemory = [...selectedItems];
+let statusTimer;
+let customizerId = 0;
+let editingLine = null;
+const fieldIds = ["customer-name", "customer-contact", "pickup-date", "pickup-time", "occasion", "notes", "fulfillment", "custom-order"];
 
-const priceBook = Object.fromEntries(menuItems.map((item) => [item.name, item]));
-const selectedItems = [];
-const bakeHouseEmail = "theakinsbakehouse@yahoo.com";
-const dynamicSquareCheckoutEndpoint = "https://akins-square-checkout.cmhawkins29.workers.dev";
-const orderHistoryKey = "akinsBakeHouseOrderHistory";
-const orderCartKey = "akinsBakeHouseCurrentOrder";
-let squareCheckoutInProgress = false;
-let checkoutValidationVisible = false;
-
-const requiredCheckoutDetails = [
-  { selector: "#customer-name", label: "name" },
-  { selector: "#customer-contact", label: "phone or email" },
-  { selector: "#pickup-date", label: "pickup date" }
-];
-
-function getFieldValue(selector) {
-  const field = document.querySelector(selector);
-  return field ? field.value.trim() : "";
+function readStorage(storage, key, fallback) {
+  try { return JSON.parse(window[storage].getItem(key)) ?? fallback; } catch { return fallback; }
 }
-
-function formatMoney(amount) {
-  return `$${amount.toFixed(amount % 1 === 0 ? 0 : 2)}`;
+function saveStorage(storage, key, data) {
+  try { window[storage].setItem(key, JSON.stringify(data)); return true; } catch { return false; }
 }
-
-function getItemActionLabel(itemName, fallback = "Add") {
-  const item = priceBook[itemName];
-
-  return item?.starting ? "Request Quote" : fallback;
-}
-
-function formatDetailList(details) {
-  const labels = details.map((detail) => detail.label);
-
-  if (labels.length <= 1) {
-    return labels[0] || "order details";
-  }
-
-  if (labels.length === 2) {
-    return `${labels[0]} and ${labels[1]}`;
-  }
-
-  return `${labels.slice(0, -1).join(", ")}, and ${labels.at(-1)}`;
-}
-
-function getRequiredCheckoutFields() {
-  return requiredCheckoutDetails
-    .map((detail) => ({
-      ...detail,
-      field: document.querySelector(detail.selector)
-    }))
-    .filter((detail) => detail.field);
-}
-
-function getMissingCheckoutDetails() {
-  return getRequiredCheckoutFields().filter(({ field }) => {
-    if (!field.value.trim()) {
-      return true;
-    }
-
-    return typeof field.checkValidity === "function" && !field.checkValidity();
-  });
-}
-
-function updateCheckoutFieldStates(showErrors = checkoutValidationVisible) {
-  getRequiredCheckoutFields().forEach(({ field }) => {
-    const hasValue = field.value.trim();
-    const isInvalid = !hasValue || (typeof field.checkValidity === "function" && !field.checkValidity());
-    field.setAttribute("aria-invalid", String(Boolean(showErrors && isInvalid)));
-  });
-}
-
-function setPickupDateMinimum() {
-  const pickupDate = document.querySelector("#pickup-date");
-
-  if (!pickupDate) {
-    return;
-  }
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  pickupDate.min = today.toISOString().slice(0, 10);
-}
-
-function buildCheckoutUrl(item) {
-  const url = new URL("checkout.html", window.location.href);
-  url.searchParams.set("item", item);
-  return url.href;
-}
-
-function setupStartingPriceButtons() {
-  document.querySelectorAll("[data-item-name]").forEach((button) => {
-    const itemName = button.dataset.itemName;
-
-    if (priceBook[itemName]?.starting) {
-      button.textContent = getItemActionLabel(itemName, button.textContent);
-    }
-  });
-}
-
-function readSavedCart() {
-  try {
-    const cart = JSON.parse(window.localStorage.getItem(orderCartKey)) || [];
-
-    return Array.isArray(cart) ? cart.filter((item) => priceBook[item]) : [];
-  } catch (error) {
-    return [];
+function removeStorage(storage, key) { try { window[storage].removeItem(key); } catch {} }
+function status(message) {
+  const target = $("#form-status") || $("#menu-cart-status");
+  if (target) {
+    target.textContent = message;
+    window.clearTimeout(statusTimer);
+    if (target.id === "menu-cart-status") statusTimer = window.setTimeout(() => { target.textContent = ""; }, 4000);
   }
 }
-
-function writeSavedCart() {
-  try {
-    if (selectedItems.length) {
-      window.localStorage.setItem(orderCartKey, JSON.stringify(selectedItems));
-    } else {
-      window.localStorage.removeItem(orderCartKey);
-    }
-
-    return true;
-  } catch (error) {
-    return false;
+function persistCart() {
+  cartMemory = [...selectedItems];
+  if (!saveStorage("localStorage", keys.cart, selectedItems)) {
+    status("This browser cannot save your cart. Keep this page open, or enable site storage before leaving the page.");
   }
 }
-
-function loadSavedCart() {
-  selectedItems.splice(0, selectedItems.length, ...readSavedCart());
-}
-
-function normalizeCustomerKey(value) {
-  return String(value || "").trim().toLowerCase().replace(/\s+/g, "");
-}
-
-function readOrderHistory() {
-  try {
-    return JSON.parse(window.localStorage.getItem(orderHistoryKey)) || {};
-  } catch (error) {
-    return {};
-  }
-}
-
-function writeOrderHistory(history) {
-  try {
-    window.localStorage.setItem(orderHistoryKey, JSON.stringify(history));
-    return true;
-  } catch (error) {
-    return false;
-  }
-}
-
-function formatSavedDate(value) {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Saved order";
-  }
-
-  return date.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric"
-  });
-}
-
-function setupMenuFilters() {
-  const filterButtons = document.querySelectorAll("[data-menu-filter]");
-  const categoryPanels = document.querySelectorAll("[data-menu-category]");
-
-  if (!filterButtons.length || !categoryPanels.length) {
-    return;
-  }
-
-  filterButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      const filter = button.dataset.menuFilter;
-
-      filterButtons.forEach((current) => {
-        const isActive = current === button;
-        current.classList.toggle("is-active", isActive);
-        current.setAttribute("aria-pressed", String(isActive));
-      });
-
-      categoryPanels.forEach((panel) => {
-        panel.hidden = filter !== "all" && panel.dataset.menuCategory !== filter;
-      });
-    });
-  });
-}
-
-function renderMenuCart() {
-  const cart = document.querySelector("#menu-cart");
-  const countLabel = document.querySelector("#menu-cart-count");
-  const totalLabel = document.querySelector("#menu-cart-total");
-  const cartLines = document.querySelector("#menu-cart-lines");
-  const checkoutLink = document.querySelector("#menu-checkout-link");
-
-  if (!cart || !countLabel || !totalLabel || !cartLines || !checkoutLink) {
-    return;
-  }
-
-  const summary = getCheckoutSummary();
-  const itemCount = selectedItems.length;
-
-  cart.classList.toggle("is-empty", !itemCount);
-  countLabel.textContent = itemCount
-    ? `${itemCount} ${itemCount === 1 ? "item" : "items"} added`
-    : "No items yet";
-  totalLabel.textContent = formatMoney(summary.total);
-  checkoutLink.classList.toggle("is-disabled", !itemCount);
-  checkoutLink.setAttribute("aria-disabled", String(!itemCount));
-  checkoutLink.textContent = itemCount ? "Review In Checkout" : "Add Items First";
-
-  cartLines.replaceChildren();
-
-  if (!summary.lines.length) {
-    const empty = document.createElement("span");
-    empty.className = "empty-state";
-    empty.textContent = "Tap Add on any bake, then check out when you are ready.";
-    cartLines.append(empty);
-    return;
-  }
-
-  summary.lines.forEach((line) => {
-    const chip = document.createElement("span");
-    const label = document.createElement("span");
-    const remove = document.createElement("button");
-
-    chip.className = "item-chip";
-    label.textContent = `${line.item}${line.quantity > 1 ? ` x${line.quantity}` : ""} - ${formatMoney(line.lineTotal)}`;
-    remove.type = "button";
-    remove.textContent = "Remove";
-    remove.setAttribute("aria-label", `Remove one ${line.item}`);
-    remove.addEventListener("click", () => removeSelectedItem(line.item));
-
-    chip.append(label, remove);
-    cartLines.append(chip);
-  });
-}
-
-function setupMenuCart() {
-  const cart = document.querySelector("#menu-cart");
-
-  if (!cart) {
-    return;
-  }
-
-  document.querySelector("#menu-clear-cart")?.addEventListener("click", () => {
-    const statusMessage = document.querySelector("#menu-cart-status");
-
-    selectedItems.splice(0, selectedItems.length);
-    writeSavedCart();
-    renderMenuCart();
-
-    if (statusMessage) {
-      statusMessage.textContent = "Current order cleared.";
-    }
-  });
-
-  document.querySelector("#menu-checkout-link")?.addEventListener("click", (event) => {
-    if (!selectedItems.length) {
-      event.preventDefault();
-    }
-  });
-
-  renderMenuCart();
-}
-
-function getCheckoutSummary() {
+function summary() {
   const counts = new Map();
-
-  selectedItems.forEach((item) => {
-    counts.set(item, (counts.get(item) || 0) + 1);
+  selectedItems.forEach(entry => {
+    const key = cartKey(entry);
+    const previous = counts.get(key);
+    if (previous) previous.quantity++;
+    else counts.set(key, { entry, key, name: cartName(entry), label: cartLabel(entry), quantity: 1, info: priceBook[cartName(entry)] });
   });
-
-  const lines = [...counts.entries()].map(([item, quantity]) => {
-    const info = priceBook[item] || { price: 0, label: "pricing pending", starting: true };
-
-    return {
-      item,
-      quantity,
-      info,
-      lineTotal: info.price * quantity
+  const lines = [...counts.values()].map(line => {
+    const pricing = rules.priceSelection(line.entry);
+    return { ...line, ...pricing, total: pricing.unitPrice * line.quantity };
+  });
+  const starting = lines.some(line => line.needsQuote);
+  return { lines, total: lines.reduce((sum, line) => sum + line.total, 0), starting, needsQuote: starting || value("fulfillment") === "delivery" || Boolean($("#custom-order")?.checked) };
+}
+function appendText(parent, tag, text, className) {
+  const element = document.createElement(tag);
+  element.textContent = text;
+  if (className) element.className = className;
+  parent.append(element);
+  return element;
+}
+function createCustomizer(name, button, entry = name) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "bake-options";
+  wrapper.dataset.bakeName = name;
+  const id = `bake-option-${++customizerId}`;
+  const label = appendText(wrapper, "label", "Make it yours");
+  label.htmlFor = id;
+  const select = appendText(label, "select", "");
+  select.id = id;
+  select.setAttribute("aria-label", `${name} options`);
+  select.setAttribute("aria-describedby", `${id}-help`);
+  rules.optionsFor(name).forEach(option => select.add(new Option(`${option.label}${option.id === "original" ? "" : option.price === null ? " — quote" : ` +${money(option.price)}`}`, option.id)));
+  const requestLabel = appendText(wrapper, "label", "Additional changes — quote required (optional)", "item-request-label");
+  requestLabel.htmlFor = `${id}-request`;
+  const input = appendText(requestLabel, "input", "");
+  input.id = `${id}-request`;
+  input.maxLength = limits.itemRequest;
+  input.placeholder = "Tell Taylor what you have in mind";
+  input.setAttribute("aria-label", `${name} request details`);
+  const helper = appendText(wrapper, "p", "", "option-help");
+  helper.id = `${id}-help`;
+  if (typeof entry !== "string") { select.value = entry.option; input.value = entry.request; }
+  const update = () => {
+    const customized = select.value !== "original";
+    requestLabel.hidden = !customized;
+    helper.hidden = !customized;
+    requestLabel.firstChild.textContent = select.value === "custom" ? "Describe your request — quote required" : "Additional changes — quote required (optional)";
+    input.removeAttribute("aria-invalid");
+    if (!customized) input.value = "";
+    const pricing = rules.priceSelection({ name, option: select.value, request: input.value });
+    const needsQuote = !pricing || pricing.needsQuote;
+    helper.textContent = needsQuote
+      ? "This request needs a quote. Taylor confirms availability and the final price before payment."
+      : `Add-on prices are ${priceBook[name].label}. Additional changes in the note need a quote.`;
+    if (button) {
+      const text = needsQuote ? "Request quote" : "Add to order";
+      button.dataset.originalText = text;
+      button.textContent = text;
+      button.setAttribute("aria-label", `${text} ${name}`);
+      const price = button.closest("article")?.querySelector("[data-price-name]");
+      if (price) price.textContent = `${needsQuote ? "Starting at " : ""}${money(pricing?.unitPrice ?? priceBook[name].price)}${needsQuote ? "" : ` ${priceBook[name].label}`}`;
+    }
+  };
+  select.addEventListener("change", update);
+  input.addEventListener("input", update);
+  update();
+  return wrapper;
+}
+function readCustomizer(wrapper) {
+  const name = wrapper.dataset.bakeName;
+  const option = wrapper.querySelector("select").value;
+  const input = wrapper.querySelector("input");
+  const entry = rules.normalizeCartItem({ name, option, request: option === "original" ? "" : input.value });
+  if (!entry) {
+    input.setAttribute("aria-invalid", "true");
+    status(option === "custom" && !input.value.trim() ? "Tell Taylor what you would like before adding this request." : `Keep each bake's request to ${limits.itemRequest} characters or fewer.`);
+    input.focus();
+  }
+  return entry;
+}
+function lineUnits(line) {
+  const units = { "per dozen": ["dozen", "dozen"], "per loaf": ["loaf", "loaves"], "per pie": ["pie", "pies"] };
+  const unit = units[line.info.label] || ["item", "items"];
+  return `${line.quantity} ${unit[line.quantity === 1 ? 0 : 1]}`;
+}
+function priceBreakdown(line) {
+  const base = `Base ${money(line.info.price * line.quantity)}`;
+  if (line.extra === null) return `${base} + add-ons quoted`;
+  return `${base}${line.extra ? ` + add-ons ${money(line.extra * line.quantity)} = ${money(line.total)}` : ""}${line.needsQuote ? " · estimate" : ""}`;
+}
+function focusEdit(key) {
+  [...document.querySelectorAll(".edit-options-button")].find(button => button.dataset.cartKey === key)?.focus({ preventScroll: true });
+}
+function appendEditor(row, line) {
+  const panel = appendText(row, "div", "", "cart-options-editor");
+  panel.setAttribute("role", "group");
+  panel.setAttribute("aria-label", `Edit ${line.label}`);
+  appendText(panel, "p", `Changes apply to ${lineUnits(line)} in this line.`, "edit-scope");
+  const customizer = createCustomizer(line.name, null, editingLine.draft);
+  panel.append(customizer);
+  const preview = appendText(panel, "p", "", "edit-price-preview");
+  const updatePreview = () => {
+    const option = customizer.querySelector("select").value;
+    const request = option === "original" ? "" : customizer.querySelector("input").value;
+    editingLine.draft = { name: line.name, option, request };
+    const pricing = rules.priceSelection(editingLine.draft);
+    preview.textContent = pricing ? `New total for ${lineUnits(line)}: ${money(pricing.unitPrice * line.quantity)}${pricing.needsQuote ? "+ · quote required" : ""}` : "Describe your request so Taylor can prepare a quote.";
+    renderPayment();
+  };
+  customizer.addEventListener("input", updatePreview);
+  customizer.addEventListener("change", updatePreview);
+  const actions = appendText(panel, "div", "", "edit-options-actions");
+  const save = appendText(actions, "button", "Save options", "add-button save-options-button");
+  const cancel = appendText(actions, "button", "Cancel", "text-button cancel-options-button");
+  save.type = cancel.type = "button";
+  save.addEventListener("click", () => {
+    const entry = readCustomizer(customizer);
+    if (!entry) return;
+    selectedItems = selectedItems.map(item => cartKey(item) === line.key ? entry : item);
+    editingLine = null;
+    persistCart(); renderCart();
+    status(`Options updated for ${lineUnits(line)} of ${line.name}.`);
+    focusEdit(cartKey(entry));
+  });
+  cancel.addEventListener("click", () => {
+    editingLine = null; renderCart(); focusEdit(line.key);
+    status("Option changes canceled. Your quantity is kept.");
+  });
+  updatePreview();
+}
+function renderChips(target) {
+  if (!target) return;
+  target.replaceChildren();
+  const order = summary();
+  if (!order.lines.length) {
+    if (target.id === "selected-bakes") {
+      const empty = appendText(target, "div", "", "order-empty");
+      appendText(empty, "h3", "Your order is waiting for something sweet.");
+      appendText(empty, "p", "Choose your favorites, then come back to arrange pickup.");
+      const browse = appendText(empty, "a", "Browse the menu", "button");
+      browse.href = "menu.html";
+    } else appendText(target, "span", "Choose a bake from the menu to get started.", "empty-state");
+    return;
+  }
+  for (const line of order.lines) {
+    const row = appendText(target, "div", "", "cart-row");
+    const copy = appendText(row, "div", "", "cart-row-copy");
+    appendText(copy, "strong", line.name);
+    if (cartDetails(line.entry)) appendText(copy, "span", cartDetails(line.entry), "cart-option-description");
+    appendText(copy, "small", `${lineUnits(line)} · ${money(line.unitPrice)}${line.needsQuote ? "+ · quote required" : ` ${line.info.label}`}`);
+    appendText(copy, "small", priceBreakdown(line), "price-breakdown");
+    if (target.id === "selected-bakes") {
+      const edit = appendText(copy, "button", "Edit options", "text-button edit-options-button");
+      edit.type = "button";
+      edit.dataset.cartKey = line.key;
+      edit.setAttribute("aria-label", `Edit options for ${line.label}`);
+      edit.disabled = Boolean(editingLine) || busy || checkingPayment;
+      edit.addEventListener("click", () => {
+        editingLine = { key: line.key, draft: line.entry };
+        renderCart();
+        $(".cart-options-editor select")?.focus({ preventScroll: true });
+      });
+    }
+    const quantity = appendText(row, "div", "", "quantity-control");
+    quantity.setAttribute("role", "group");
+    quantity.setAttribute("aria-label", `${line.label} quantity`);
+    const decrease = appendText(quantity, "button", "−");
+    const count = appendText(quantity, "input", "", "quantity-input");
+    count.type = "text";
+    count.inputMode = "numeric";
+    count.pattern = "[0-9]+";
+    count.required = true;
+    count.maxLength = 3;
+    count.value = String(line.quantity);
+    count.dataset.cartKey = line.key;
+    count.setAttribute("aria-label", `Quantity for ${line.label}`);
+    count.disabled = busy || checkingPayment;
+    const commitQuantity = () => {
+      if (!count.isConnected) return;
+      const nextQuantity = Number(count.value);
+      const otherQuantity = selectedItems.filter(item => cartName(item) === line.name && cartKey(item) !== line.key).length;
+      const maximum = limits.quantity - otherQuantity;
+      if (!/^[0-9]+$/.test(count.value) || !Number.isInteger(nextQuantity) || nextQuantity < 1 || nextQuantity > maximum) {
+        const message = `Enter a whole-number quantity from 1 to ${maximum}. The limit is ${limits.quantity} units of each bake across all options.`;
+        count.setCustomValidity(message);
+        count.setAttribute("aria-invalid", "true");
+        renderPayment(); status(message); return;
+      }
+      count.setCustomValidity("");
+      count.setAttribute("aria-invalid", "false");
+      if (nextQuantity === line.quantity) { renderPayment(); return; }
+      const focused = document.activeElement === count;
+      const caret = count.selectionStart;
+      let kept = 0;
+      selectedItems = selectedItems.filter(item => cartKey(item) !== line.key || ++kept <= nextQuantity);
+      for (let i = kept; i < nextQuantity; i++) selectedItems.push(line.entry);
+      persistCart(); renderCart();
+      status(`Quantity updated to ${lineUnits({ ...line, quantity: nextQuantity })} of ${line.name}.`);
+      if (focused) {
+        const replacement = [...target.querySelectorAll(".quantity-input")].find(input => input.dataset.cartKey === line.key);
+        replacement?.focus({ preventScroll: true });
+        if (replacement && caret !== null) replacement.setSelectionRange(Math.min(caret, replacement.value.length), Math.min(caret, replacement.value.length));
+      }
     };
-  });
-
-  const total = lines.reduce((sum, line) => sum + line.lineTotal, 0);
-
-  return {
-    lines,
-    total,
-    dueToday: total,
-    hasStartingPrice: lines.some((line) => line.info.starting)
-  };
-}
-
-function buildOrderNote(summary = getCheckoutSummary()) {
-  const name = getFieldValue("#customer-name") || "Akins order";
-  const itemText = summary.lines.length
-    ? summary.lines.map((line) => `${line.item}${line.quantity > 1 ? ` x${line.quantity}` : ""}`).join(", ")
-    : "No items selected";
-
-  return `${name} - ${itemText}`;
-}
-
-function buildSquareCheckoutPayload(summary = getCheckoutSummary()) {
-  return {
-    items: summary.lines.map((line) => ({
-      name: line.item,
-      quantity: line.quantity
-    })),
-    customer: {
-      name: getFieldValue("#customer-name"),
-      contact: getFieldValue("#customer-contact")
-    },
-    pickupDate: getFieldValue("#pickup-date"),
-    occasion: getFieldValue("#occasion"),
-    notes: getFieldValue("#notes"),
-    orderReference: buildOrderNote(summary),
-    totals: {
-      total: summary.total,
-      dueToday: summary.dueToday
-    },
-    returnUrl: `${window.location.origin}${window.location.pathname}?square=paid`
-  };
-}
-
-function buildQuoteRequestUrl() {
-  const subject = encodeURIComponent("The Akins Bake House Final Total Request");
-  const body = encodeURIComponent(buildRequestMessage());
-
-  return `mailto:${bakeHouseEmail}?subject=${subject}&body=${body}`;
-}
-
-function updateSquareCheckout(summary = getCheckoutSummary()) {
-  const squarePaymentAmount = document.querySelector("#square-payment-amount");
-  const squareOrderNote = document.querySelector("#square-order-note");
-  const squarePayButton = document.querySelector("#square-pay-button");
-  const squarePayNote = document.querySelector("#square-pay-note");
-  const squareStatus = document.querySelector("#square-status");
-
-  if (!squarePaymentAmount || !squareOrderNote || !squarePayButton || !squareStatus) {
-    return;
-  }
-
-  const missingDetails = getMissingCheckoutDetails();
-  const needsFinalTotal = summary.hasStartingPrice;
-  const canStartSquare = Boolean(summary.lines.length && !missingDetails.length && !needsFinalTotal);
-  const canRequestFinalTotal = Boolean(summary.lines.length && !missingDetails.length && needsFinalTotal);
-  const buttonDisabled = (!canStartSquare && !canRequestFinalTotal) || squareCheckoutInProgress;
-
-  updateCheckoutFieldStates();
-  squarePaymentAmount.textContent = needsFinalTotal
-    ? `${formatMoney(summary.total)} starter estimate`
-    : `${formatMoney(summary.dueToday)} due today`;
-  squareOrderNote.textContent = summary.lines.length ? buildOrderNote(summary) : "Add items to generate a note";
-
-  squarePayButton.classList.toggle("is-disabled", buttonDisabled);
-  squarePayButton.setAttribute("aria-disabled", String(buttonDisabled));
-  squarePayButton.href = canStartSquare
-    ? dynamicSquareCheckoutEndpoint
-    : canRequestFinalTotal
-      ? buildQuoteRequestUrl()
-      : "#";
-  squarePayButton.removeAttribute("target");
-  squarePayButton.removeAttribute("rel");
-  squarePayButton.textContent = squareCheckoutInProgress
-    ? "Creating Square Checkout..."
-    : summary.lines.length
-      ? missingDetails.length
-        ? "Complete Details First"
-        : needsFinalTotal
-          ? "Request Final Total"
-          : `Pay ${formatMoney(summary.dueToday)} With Square`
-      : "Add Items First";
-  squareStatus.textContent = summary.lines.length
-    ? missingDetails.length
-      ? "Details needed"
-      : needsFinalTotal
-        ? "Quote needed"
-        : "Ready to pay"
-    : "Add items";
-
-  if (squarePayNote) {
-    squarePayNote.textContent = !summary.lines.length
-      ? "Add at least one bake before opening Square checkout."
-      : missingDetails.length
-        ? `Add ${formatDetailList(missingDetails)} before opening Square checkout.`
-        : needsFinalTotal
-          ? "This order includes starter pricing. Send the details first so the final total can be confirmed before payment."
-          : "Square will open with the exact Pay today total for this order.";
-  }
-}
-
-function updateCheckoutSummary() {
-  const checkoutLines = document.querySelector("#checkout-lines");
-  const checkoutTotal = document.querySelector("#checkout-total");
-  const dueTodayTotal = document.querySelector("#due-today-total");
-  const balanceTotal = document.querySelector("#balance-total");
-  const checkoutNote = document.querySelector("#checkout-note");
-
-  if (!checkoutLines || !checkoutTotal || !dueTodayTotal || !checkoutNote) {
-    return;
-  }
-
-  const summary = getCheckoutSummary();
-  updateSquareCheckout(summary);
-  checkoutLines.replaceChildren();
-
-  if (!summary.lines.length) {
-    const empty = document.createElement("div");
-    empty.className = "summary-line";
-    empty.innerHTML = "<span>No items selected yet</span><strong>$0</strong>";
-    checkoutLines.append(empty);
-    checkoutTotal.textContent = "$0";
-    dueTodayTotal.textContent = "$0";
-    if (balanceTotal) {
-      balanceTotal.textContent = "$0";
-    }
-    checkoutNote.textContent = "Add items to see what is due today.";
-    return;
-  }
-
-  summary.lines.forEach((line) => {
-    const row = document.createElement("div");
-    const label = document.createElement("span");
-    const price = document.createElement("strong");
-
-    row.className = "summary-line";
-    label.textContent = `${line.item}${line.quantity > 1 ? ` x${line.quantity}` : ""} (${line.info.label})`;
-    price.textContent = formatMoney(line.lineTotal);
-
-    row.append(label, price);
-    checkoutLines.append(row);
-  });
-
-  checkoutTotal.textContent = summary.hasStartingPrice ? `${formatMoney(summary.total)}+` : formatMoney(summary.total);
-  dueTodayTotal.textContent = summary.hasStartingPrice ? "After quote" : formatMoney(summary.dueToday);
-  if (balanceTotal) {
-    balanceTotal.textContent = summary.hasStartingPrice ? "TBD" : "$0";
-  }
-  checkoutNote.textContent = summary.hasStartingPrice
-    ? "Estimated total uses starter pricing. Send the order details first so the final total can be confirmed before payment."
-    : "Total is based on selected menu prices. Full payment is due when the order is confirmed.";
-}
-
-function updateEmailLink() {
-  const emailLink = document.querySelector("#email-request");
-
-  if (!emailLink) {
-    return;
-  }
-
-  const subject = encodeURIComponent("The Akins Bake House Checkout");
-  const body = encodeURIComponent(buildRequestMessage());
-  emailLink.href = `mailto:${bakeHouseEmail}?subject=${subject}&body=${body}`;
-}
-
-function renderSelectedItems() {
-  const selectedBakes = document.querySelector("#selected-bakes");
-
-  if (!selectedBakes) {
-    return;
-  }
-
-  selectedBakes.replaceChildren();
-
-  if (!selectedItems.length) {
-    const empty = document.createElement("span");
-    empty.className = "empty-state";
-    empty.textContent = "Selected bakes will appear here. Click Add once per menu unit.";
-    selectedBakes.append(empty);
-    updateCheckoutSummary();
-    updateEmailLink();
-    return;
-  }
-
-  const counts = new Map();
-  selectedItems.forEach((item) => {
-    counts.set(item, (counts.get(item) || 0) + 1);
-  });
-
-  counts.forEach((quantity, item) => {
-    const chip = document.createElement("span");
-    const label = document.createElement("span");
-    const remove = document.createElement("button");
-    const info = priceBook[item] || { price: 0 };
-
-    chip.className = "item-chip";
-    label.textContent = `${item}${quantity > 1 ? ` x${quantity}` : ""} - ${formatMoney(info.price * quantity)}`;
-    remove.type = "button";
-    remove.textContent = "Remove";
-    remove.setAttribute("aria-label", `Remove one ${item}`);
-    remove.addEventListener("click", () => removeSelectedItem(item));
-
-    chip.append(label, remove);
-    selectedBakes.append(chip);
-  });
-
-  updateCheckoutSummary();
-  updateEmailLink();
-}
-
-function addSelectedItem(item, sourceButton) {
-  const statusMessage = document.querySelector("#form-status");
-  const menuStatusMessage = document.querySelector("#menu-cart-status");
-  const itemSelect = document.querySelector("#menu-item");
-  const alreadySelected = selectedItems.includes(item);
-
-  if (!document.querySelector("#order-form")) {
-    if (!document.querySelector("#menu-cart")) {
-      window.location.href = buildCheckoutUrl(item);
-      return;
-    }
-
-    selectedItems.push(item);
-    writeSavedCart();
-
-    if (menuStatusMessage) {
-      menuStatusMessage.textContent = alreadySelected ? `Another ${item} added.` : `${item} added.`;
-    }
-
-    if (sourceButton) {
-      const originalText = sourceButton.dataset.originalText || sourceButton.textContent;
-      sourceButton.dataset.originalText = originalText;
-      sourceButton.classList.add("is-added");
-      sourceButton.textContent = "Added";
-      window.setTimeout(() => {
-        sourceButton.classList.remove("is-added");
-        sourceButton.textContent = originalText;
-      }, 900);
-    }
-
-    renderMenuCart();
-    return;
-  }
-
-  selectedItems.push(item);
-  writeSavedCart();
-
-  if (statusMessage) {
-    statusMessage.textContent = alreadySelected ? `Another ${item} added to checkout.` : `${item} added to checkout.`;
-  }
-
-  if (itemSelect) {
-    itemSelect.value = item;
-  }
-
-  if (sourceButton) {
-    const originalText = sourceButton.dataset.originalText || sourceButton.textContent;
-    sourceButton.dataset.originalText = originalText;
-    sourceButton.classList.add("is-added");
-    sourceButton.textContent = "Added";
-    window.setTimeout(() => {
-      sourceButton.classList.remove("is-added");
-      sourceButton.textContent = originalText;
-    }, 900);
-  }
-
-  renderSelectedItems();
-}
-
-function removeSelectedItem(item) {
-  const statusMessage = document.querySelector("#form-status");
-  const menuStatusMessage = document.querySelector("#menu-cart-status");
-  const index = selectedItems.indexOf(item);
-
-  if (index >= 0) {
-    selectedItems.splice(index, 1);
-    writeSavedCart();
-
-    if (statusMessage) {
-      statusMessage.textContent = `${item} removed.`;
-    }
-
-    if (menuStatusMessage) {
-      menuStatusMessage.textContent = `${item} removed.`;
-    }
-
-    renderSelectedItems();
-    renderMenuCart();
-  }
-}
-
-function buildRequestMessage() {
-  const summary = getCheckoutSummary();
-  const checkoutItems = summary.lines.length
-    ? summary.lines.map((line) => `- ${line.item} x${line.quantity}: ${formatMoney(line.lineTotal)} (${line.info.label})`)
-    : ["- Not selected"];
-  const name = getFieldValue("#customer-name") || "Not provided";
-  const contact = getFieldValue("#customer-contact") || "Not provided";
-  const date = getFieldValue("#pickup-date") || "Not provided";
-  const occasion = getFieldValue("#occasion") || "Not provided";
-  const notes = getFieldValue("#notes") || "None";
-
-  return [
-    "The Akins Bake House checkout request",
-    "",
-    `Name: ${name}`,
-    `Contact: ${contact}`,
-    "Items:",
-    ...checkoutItems,
-    `Pickup date: ${date}`,
-    `Occasion: ${occasion}`,
-    `Estimated total: ${formatMoney(summary.total)}${summary.hasStartingPrice ? " (starter pricing)" : ""}`,
-    summary.hasStartingPrice
-      ? "Payment: Final total should be confirmed before payment because this order includes starter pricing."
-      : `Full payment due: ${formatMoney(summary.dueToday)}`,
-    summary.hasStartingPrice
-      ? "Square checkout: Send a final total first, then pay after confirmation."
-      : "Square checkout: Exact checkout link created at payment time",
-    `Square order note: ${buildOrderNote(summary)}`,
-    "Payment options: card, digital wallet, or Cash App Pay when enabled in Square",
-    "Bake schedule: start after full payment is confirmed received",
-    "",
-    "Notes:",
-    notes
-  ].join("\n");
-}
-
-async function copyText(value, successMessage) {
-  const statusMessage = document.querySelector("#form-status");
-
-  try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(value);
-    } else {
-      const helper = document.createElement("textarea");
-      helper.value = value;
-      helper.setAttribute("readonly", "");
-      helper.style.position = "fixed";
-      helper.style.left = "-9999px";
-      document.body.appendChild(helper);
-      helper.select();
-      document.execCommand("copy");
-      helper.remove();
-    }
-
-    if (statusMessage) {
-      statusMessage.textContent = successMessage;
-    }
-  } catch (error) {
-    if (statusMessage) {
-      statusMessage.textContent = "Copy did not work here. You can copy it manually.";
-    }
-  }
-}
-
-async function createExactSquareCheckout() {
-  const statusMessage = document.querySelector("#form-status");
-  const squarePayButton = document.querySelector("#square-pay-button");
-  const summary = getCheckoutSummary();
-
-  if (!summary.lines.length) {
-    if (statusMessage) {
-      statusMessage.textContent = "Add at least one item before opening Square checkout.";
-    }
-    return;
-  }
-
-  checkoutValidationVisible = true;
-  const missingDetails = getMissingCheckoutDetails();
-
-  if (missingDetails.length) {
-    updateCheckoutFieldStates(true);
-    updateSquareCheckout(summary);
-
-    if (statusMessage) {
-      statusMessage.textContent = `Add ${formatDetailList(missingDetails)} before opening Square checkout.`;
-    }
-
-    missingDetails[0].field.focus();
-
-    if (typeof missingDetails[0].field.reportValidity === "function") {
-      missingDetails[0].field.reportValidity();
-    }
-
-    return;
-  }
-
-  if (summary.hasStartingPrice) {
-    if (statusMessage) {
-      statusMessage.textContent = "Opening an email request so the final total can be confirmed before payment.";
-    }
-
-    window.location.href = buildQuoteRequestUrl();
-    return;
-  }
-
-  if (squareCheckoutInProgress) {
-    return;
-  }
-
-  squareCheckoutInProgress = true;
-  updateSquareCheckout(summary);
-
-  if (statusMessage) {
-    statusMessage.textContent = "Creating a secure Square checkout for the exact total...";
-  }
-
-  try {
-    const response = await fetch(dynamicSquareCheckoutEndpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(buildSquareCheckoutPayload(summary))
+    count.addEventListener("input", commitQuantity);
+    count.addEventListener("change", commitQuantity);
+    count.addEventListener("keydown", event => {
+      if (event.key === "Enter") { event.preventDefault(); commitQuantity(); }
     });
-    const data = await response.json().catch(() => ({}));
-
-    if (!response.ok || !data.checkoutUrl) {
-      const squareDetails = Array.isArray(data.errors)
-        ? data.errors.map((entry) => entry.detail || entry.code).filter(Boolean).join(" ")
-        : "";
-      throw new Error(squareDetails || data.message || data.error || "Square checkout is not configured yet.");
-    }
-
-    window.location.href = data.checkoutUrl;
-  } catch (error) {
-    squareCheckoutInProgress = false;
-    updateSquareCheckout(summary);
-
-    if (statusMessage) {
-      const errorText = String(error?.message || "");
-
-      if (/authorized|authorization|authentication|unauthorized/i.test(errorText)) {
-        statusMessage.textContent = "Square is connected, but the Square access token in Netlify is not authorized. Check that Netlify has the Production access token, Production location ID, and no quotes or extra spaces.";
-      } else if (/not configured|environment/i.test(errorText)) {
-        statusMessage.textContent = "Square backend is deployed, but the Netlify environment variables are missing. Add SQUARE_ACCESS_TOKEN, SQUARE_LOCATION_ID, SQUARE_ENVIRONMENT, and SITE_URL.";
-      } else {
-        statusMessage.textContent = `Square checkout could not open yet. ${errorText || "Check the Square setup in Netlify."}`;
+    count.addEventListener("blur", () => {
+      if (count.isConnected && !count.checkValidity()) {
+        count.value = String(line.quantity);
+        count.setCustomValidity(""); count.setAttribute("aria-invalid", "false");
+        renderPayment();
       }
-    }
-  }
-}
-
-function showSquareReturnStatus() {
-  const statusMessage = document.querySelector("#form-status");
-  const squareStatus = new URLSearchParams(window.location.search).get("square");
-
-  if (statusMessage && squareStatus === "paid") {
-    statusMessage.textContent = "Payment received. Square will keep the paid order details for The Akins Bake House.";
-  }
-}
-
-function buildSavedOrder(summary = getCheckoutSummary()) {
-  return {
-    savedAt: new Date().toISOString(),
-    name: getFieldValue("#customer-name"),
-    contact: getFieldValue("#customer-contact"),
-    pickupDate: getFieldValue("#pickup-date"),
-    occasion: getFieldValue("#occasion"),
-    notes: getFieldValue("#notes"),
-    total: summary.total,
-    dueToday: summary.dueToday,
-    hasStartingPrice: summary.hasStartingPrice,
-    lines: summary.lines.map((line) => ({
-      item: line.item,
-      quantity: line.quantity,
-      label: line.info.label,
-      lineTotal: line.lineTotal
-    }))
-  };
-}
-
-function renderReturningOrders(contactValue = getFieldValue("#customer-contact")) {
-  const returningOrders = document.querySelector("#returning-orders");
-
-  if (!returningOrders) {
-    return;
-  }
-
-  const appendEmpty = (message) => {
-    const empty = document.createElement("span");
-    empty.className = "empty-state";
-    empty.textContent = message;
-    returningOrders.append(empty);
-  };
-
-  returningOrders.replaceChildren();
-
-  const customerKey = normalizeCustomerKey(contactValue);
-
-  if (!customerKey) {
-    appendEmpty("Past orders saved on this device will show here.");
-    return;
-  }
-
-  const history = readOrderHistory();
-  const orders = history[customerKey] || [];
-
-  if (!orders.length) {
-    appendEmpty("No saved orders found on this device for that phone or email yet.");
-    return;
-  }
-
-  orders.slice(0, 5).forEach((order) => {
-    const card = document.createElement("article");
-    const copy = document.createElement("div");
-    const label = document.createElement("span");
-    const title = document.createElement("strong");
-    const details = document.createElement("p");
-    const addAgain = document.createElement("button");
-    const orderItems = order.lines
-      .map((line) => `${line.item}${line.quantity > 1 ? ` x${line.quantity}` : ""}`)
-      .join(", ");
-
-    card.className = "saved-order";
-    label.textContent = formatSavedDate(order.savedAt);
-    title.textContent = `${formatMoney(order.total)} saved order`;
-    details.textContent = orderItems || "No items saved";
-    addAgain.className = "add-button";
-    addAgain.type = "button";
-    addAgain.textContent = "Add Again";
-    addAgain.addEventListener("click", () => {
-      const statusMessage = document.querySelector("#form-status");
-
-      order.lines.forEach((line) => {
-        if (!priceBook[line.item]) {
-          return;
+    });
+    const increase = appendText(quantity, "button", "+");
+    for (const [button, delta] of [[decrease, -1], [increase, 1]]) {
+      button.type = "button";
+      button.disabled = busy || checkingPayment;
+      const label = `${delta > 0 ? "Add" : "Remove"} one ${line.label}`;
+      button.setAttribute("aria-label", label);
+      button.addEventListener("click", () => {
+        if (delta > 0) addItem(line.entry);
+        else {
+          selectedItems.splice(selectedItems.findIndex(entry => cartKey(entry) === line.key), 1);
+          status(`One ${line.label} removed.`);
+          persistCart(); renderCart();
         }
-
-        for (let index = 0; index < line.quantity; index += 1) {
-          selectedItems.push(line.item);
-        }
+        // Keep keyboard focus on the quantity control after its row is rebuilt.
+        const next = [...target.querySelectorAll("button")].find(candidate => candidate.getAttribute("aria-label") === label);
+        const fallback = target.querySelector("button") || $(".quick-add-details summary") || $(".nav-order");
+        (next || fallback)?.focus({ preventScroll: true });
       });
-      writeSavedCart();
-
-      const nameField = document.querySelector("#customer-name");
-      const contactField = document.querySelector("#customer-contact");
-      const occasionField = document.querySelector("#occasion");
-      const notesField = document.querySelector("#notes");
-
-      if (nameField && !nameField.value && order.name) {
-        nameField.value = order.name;
-      }
-
-      if (contactField && order.contact) {
-        contactField.value = order.contact;
-      }
-
-      if (occasionField && !occasionField.value && order.occasion) {
-        occasionField.value = order.occasion;
-      }
-
-      if (notesField && !notesField.value && order.notes) {
-        notesField.value = order.notes;
-      }
-
-      if (statusMessage) {
-        statusMessage.textContent = "Past order added to checkout.";
-      }
-
-      renderSelectedItems();
-      renderReturningOrders(order.contact);
+    }
+    appendText(row, "strong", `${money(line.total)}${line.needsQuote ? "+" : ""}`);
+    if (target.id === "selected-bakes" && editingLine?.key === line.key) appendEditor(row, line);
+  }
+}
+function renderCart() {
+  if (editingLine && !selectedItems.some(item => cartKey(item) === editingLine.key)) editingLine = null;
+  const order = summary();
+  document.querySelectorAll("[data-cart-count]").forEach(counter => { counter.textContent = selectedItems.length; });
+  renderChips($("#menu-cart-lines"));
+  renderChips($("#selected-bakes"));
+  if ($("#menu-cart")) {
+    $("#menu-cart").classList.toggle("is-empty", !selectedItems.length);
+    $("#menu-cart-count").textContent = `${selectedItems.length || "No"} ${selectedItems.length === 1 ? "item" : "items"} added`;
+    $("#menu-cart-total").textContent = `${money(order.total)}${order.starting ? "+" : ""}`;
+    const link = $("#menu-checkout-link");
+    link.textContent = selectedItems.length ? "Checkout ↗" : "Add Items First";
+    link.setAttribute("aria-disabled", String(!selectedItems.length));
+    link.classList.toggle("is-disabled", !selectedItems.length);
+  }
+  renderPayment();
+}
+function addItem(item, button) {
+  const entry = rules.normalizeCartItem(item);
+  if (!entry) return false;
+  const name = cartName(entry);
+  if (selectedItems.filter(item => cartName(item) === name).length >= limits.quantity) {
+    status(`You can add up to ${limits.quantity} units of each bake online. Email us for a larger order.`); return false;
+  }
+  selectedItems.push(entry);
+  status(`${cartLabel(entry)} added${rules.priceSelection(entry).needsQuote ? " as a quote request." : "."}`); persistCart(); renderCart();
+  if (button) {
+    const label = button.dataset.originalText || button.textContent;
+    button.dataset.originalText = label;
+    button.textContent = "Added"; button.classList.add("is-added");
+    window.setTimeout(() => { button.textContent = button.dataset.originalText; button.classList.remove("is-added"); }, 900);
+  }
+  return true;
+}
+function validateFields(show = errorsVisible) {
+  if (!$("#order-form")) return [];
+  for (const [id, limit] of [["customer-name", limits.name], ["occasion", limits.occasion], ["notes", limits.notes], ["pickup-time", limits.pickupTime]]) {
+    const field = $(`#${id}`);
+    field.setCustomValidity(field.value.trim().length > limit ? `Use ${limit} characters or fewer.` : field.required && !field.value.trim() ? "Please enter your name." : "");
+  }
+  $("#pickup-date").min = rules.todayInOklahoma();
+  const contact = $("#customer-contact");
+  contact.setCustomValidity(contact.value && !rules.validContact(contact.value) ? "Enter a valid email or a phone number with at least 10 digits." : "");
+  const date = $("#pickup-date");
+  date.setCustomValidity(date.value && !rules.validDate(date.value) ? "Choose today or a future date in Oklahoma." : "");
+  const invalid = [];
+  $("#order-form").querySelectorAll("input, select, textarea").forEach(field => {
+    const valid = field.checkValidity();
+    field.setAttribute("aria-invalid", String((show || field.classList.contains("quantity-input")) && !valid));
+    if (!valid) invalid.push(field);
+  });
+  $("#notes-count").textContent = `${value("notes").length} / ${limits.notes} characters`;
+  return invalid;
+}
+function renderPayment() {
+  if (!$("#order-form")) return;
+  const order = summary();
+  const empty = !order.lines.length;
+  const invalid = validateFields();
+  const lines = $("#checkout-lines"); lines.replaceChildren();
+  if (!order.lines.length) {
+    appendText(lines, "p", "Your order summary will appear here.", "empty-state");
+  } else {
+    order.lines.forEach(line => {
+      const row = appendText(lines, "div", "", "summary-line");
+      const copy = appendText(row, "span", `${line.label}${line.quantity > 1 ? ` ×${line.quantity}` : ""} (${lineUnits(line)})`);
+      appendText(copy, "small", priceBreakdown(line), "summary-breakdown");
+      appendText(row, "strong", `${money(line.total)}${line.needsQuote ? "+" : ""}`);
     });
-
-    copy.append(label, title, details);
-    card.append(copy, addAgain);
-    returningOrders.append(card);
+  }
+  $("#checkout-total").textContent = `${money(order.total)}${order.starting ? "+" : ""}`;
+  $("#due-today-total").textContent = order.needsQuote ? "No payment yet" : money(order.total);
+  $(".square-totals").hidden = empty;
+  $(".square-pay-area").hidden = empty;
+  $("#checkout-note").hidden = empty;
+  $("#copy-request").hidden = empty;
+  $("#copy-request").disabled = Boolean(editingLine);
+  $("#save-order-history").disabled = empty || Boolean(editingLine);
+  $(".secure-note").hidden = empty || order.needsQuote;
+  if (empty) $("#copy-fallback").hidden = true;
+  $(".quote-payment").hidden = empty || !order.needsQuote;
+  $("#checkout-note").textContent = editingLine ? "Save or cancel your option changes before continuing." : order.needsQuote ? "Quote required — no payment yet. This estimate includes listed add-ons. Taylor confirms availability and the final price for your request before payment." : "Your total includes the selected add-ons. Taylor will confirm your requested pickup arrangements.";
+  $("#square-status").textContent = checkingPayment ? "Checking payment" : empty ? "Choose your bakes" : editingLine ? "Finish editing" : order.needsQuote ? "Quote required" : invalid.length ? "Details needed" : "Ready to pay";
+  const button = $("#square-pay-button");
+  button.disabled = empty || busy || checkingPayment;
+  button.classList.toggle("is-disabled", button.disabled);
+  button.textContent = busy ? "Opening Square…" : empty ? "Add Items First" : editingLine ? "Finish editing options" : order.needsQuote ? "Email Quote Request" : `Pay ${money(order.total)} With Square`;
+  $("#square-pay-note").textContent = order.needsQuote ? "Opens your email app with the order details. Press Send there to request a quote. If email does not open, use Copy Order Request below." : "Add your contact details and requested date. Card details are entered securely on Square.";
+}
+function draft() {
+  return Object.fromEntries(fieldIds.map(id => [id, id === "custom-order" ? Boolean($(`#${id}`)?.checked) : value(id)]));
+}
+function saveDraft() { saveStorage("sessionStorage", keys.draft, draft()); }
+function restoreDraft() {
+  const saved = readStorage("sessionStorage", keys.draft, {});
+  if (!saved || typeof saved !== "object" || Array.isArray(saved)) return;
+  fieldIds.forEach(id => {
+    const field = $(`#${id}`);
+    if (id === "custom-order") field.checked = saved[id] === true;
+    else if (typeof saved[id] === "string") field.value = saved[id];
   });
 }
-
-function saveCurrentOrderHistory() {
-  const statusMessage = document.querySelector("#form-status");
-  const contact = getFieldValue("#customer-contact");
-  const customerKey = normalizeCustomerKey(contact);
-  const summary = getCheckoutSummary();
-
-  if (!customerKey) {
-    if (statusMessage) {
-      statusMessage.textContent = "Add a phone or email before saving this order.";
-    }
+function requestMessage() {
+  const order = summary();
+  return ["The Akins Bake House order request", "", `Name: ${value("customer-name") || "Not provided"}`, `Contact: ${value("customer-contact") || "Not provided"}`, "Items:",
+    ...order.lines.map(line => `- ${line.label} ×${line.quantity}: ${money(line.total)}${line.needsQuote ? "+ (estimate; final quote needed)" : ""} (${line.info.label})`),
+    `Menu total: ${money(order.total)}${order.starting ? "+" : ""}`, `Date requested: ${value("pickup-date") || "To be arranged"}`,
+    `Time requested: ${value("pickup-time") || "To be arranged"}`, `Fulfillment: ${value("fulfillment") === "delivery" ? "Local delivery — quote first" : "Pickup / meet-up"}`,
+    `Custom request: ${$("#custom-order")?.checked || order.lines.some(line => line.needsQuote) ? "Yes — quote first" : "No"}`, `Occasion: ${value("occasion") || "Not specified"}`,
+    "Please confirm availability and the final total before payment.", "", "Notes:", value("notes") || "None"].join("\n");
+}
+async function api(payload) {
+  const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload), signal: AbortSignal.timeout(25000) });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.message || (localPreview ? "This preview needs the local checkout server. Start it with npm run dev and open http://localhost:8888." : "Checkout is unavailable. Please try again or email the bakery."));
+  return data;
+}
+async function checkout() {
+  if (busy || checkingPayment) return;
+  if (editingLine) { status("Save or cancel your option changes before continuing."); $(".save-options-button")?.focus(); return; }
+  if (!selectedItems.length) { status("Add at least one bake first."); return; }
+  errorsVisible = true;
+  const invalid = validateFields(true);
+  if (invalid.length) {
+    status("Please check the highlighted order details.");
+    const details = invalid[0].closest("details");
+    if (details) details.open = true;
+    invalid[0].focus(); invalid[0].reportValidity(); return;
+  }
+  const order = summary();
+  if (order.needsQuote) {
+    status("Your email app will open. Send the message there to request your quote; your order is not submitted yet.");
+    location.href = `mailto:${email}?subject=${encodeURIComponent("The Akins Bake House Quote Request")}&body=${encodeURIComponent(requestMessage())}`;
     return;
   }
-
-  if (!summary.lines.length) {
-    if (statusMessage) {
-      statusMessage.textContent = "Add at least one item before saving this order.";
-    }
-    return;
-  }
-
-  const history = readOrderHistory();
-  const savedOrder = buildSavedOrder(summary);
-  history[customerKey] = [savedOrder, ...(history[customerKey] || [])].slice(0, 5);
-
-  if (!writeOrderHistory(history)) {
-    if (statusMessage) {
-      statusMessage.textContent = "This browser could not save the order history.";
-    }
-    return;
-  }
-
-  renderReturningOrders(contact);
-
-  if (statusMessage) {
-    statusMessage.textContent = "Order saved on this device for faster reordering.";
+  const payload = {
+    action: "create", items: order.lines.map(line => ({ name: line.name, quantity: line.quantity, ...(typeof line.entry === "string" ? {} : { option: line.entry.option, request: line.entry.request }) })),
+    customer: { name: value("customer-name"), contact: value("customer-contact") }, pickupDate: value("pickup-date"), pickupTime: value("pickup-time"),
+    occasion: value("occasion"), notes: value("notes"), fulfillment: value("fulfillment"), customOrder: $("#custom-order").checked,
+    totals: { dueToday: order.total }, returnUrl: new URL("checkout.html", location.href).href
+  };
+  const signature = JSON.stringify(payload);
+  const previous = readStorage("sessionStorage", keys.request, {});
+  payload.requestId = previous?.signature === signature && typeof previous.id === "string" ? previous.id : crypto.randomUUID();
+  saveStorage("sessionStorage", keys.request, { signature, id: payload.requestId });
+  const cartSnapshot = [...selectedItems];
+  busy = true; renderPayment(); status("Opening secure Square checkout…");
+  try {
+    const data = await api(payload);
+    const target = new URL(data.checkoutUrl);
+    if (target.protocol !== "https:" || !["square.link", "checkout.square.site", "connect.squareupsandbox.com", "squareupsandbox.com"].includes(target.hostname)) throw new Error("Square returned an unexpected checkout link. Please contact the bakery.");
+    if (!data.verificationToken || !data.orderId) throw new Error("Checkout is being updated. Please email the bakery to arrange your order.");
+    if (!saveStorage("sessionStorage", keys.pending, { token: data.verificationToken, orderId: data.orderId, items: cartSnapshot })) throw new Error("Please allow site storage so we can confirm your payment when you return from Square.");
+    saveDraft();
+    location.assign(target.href);
+  } catch (error) {
+    busy = false; renderPayment();
+    status(error.name === "TimeoutError" || error.name === "TypeError" ? "We could not reach checkout. Please try again, or email your order. If you already paid, check your Square receipt before trying again." : error.message);
   }
 }
-
-function setupCheckout() {
-  const orderForm = document.querySelector("#order-form");
-  const itemSelect = document.querySelector("#menu-item");
-  const squarePayButton = document.querySelector("#square-pay-button");
-  const copyRequestButton = document.querySelector("#copy-request");
-  const checkReturningButton = document.querySelector("#check-returning-order");
-  const saveOrderButton = document.querySelector("#save-order-history");
-
-  if (!orderForm) {
-    return;
+async function checkPayment() {
+  const panel = $("#payment-result");
+  if (!panel || checkingPayment) return;
+  const pending = readStorage("sessionStorage", keys.pending, null);
+  panel.hidden = false;
+  const message = $("#payment-result-message");
+  const retry = $("#check-payment");
+  if (!pending?.token || !pending?.orderId) {
+    message.textContent = "We cannot verify a payment from this page alone. If you paid, check your Square receipt or contact Taylor before paying again.";
+    retry.hidden = true; return;
   }
-
-  setPickupDateMinimum();
-
-  new URLSearchParams(window.location.search).getAll("item").forEach((item) => {
-    if (priceBook[item]) {
-      selectedItems.push(item);
-    }
-  });
-  writeSavedCart();
-
-  document.querySelector("#add-selected-item")?.addEventListener("click", () => {
-    const statusMessage = document.querySelector("#form-status");
-
-    if (!itemSelect || !itemSelect.value) {
-      if (statusMessage) {
-        statusMessage.textContent = "Choose an item first.";
-      }
+  checkingPayment = true; retry.disabled = true; retry.hidden = false; renderPayment();
+  message.textContent = "Checking your payment with Square…";
+  try {
+    const result = await api({ action: "verify", verificationToken: pending.token });
+    if (!result.paid || result.orderId !== pending.orderId) {
+      message.textContent = "Square has not confirmed this payment yet. Check your receipt and try Check Payment Again before making another payment.";
       return;
     }
-
-    addSelectedItem(itemSelect.value);
-  });
-
-  orderForm.querySelectorAll("input, select, textarea").forEach((field) => {
-    field.addEventListener("input", () => {
-      updateCheckoutFieldStates(checkoutValidationVisible);
-      updateCheckoutSummary();
-      updateEmailLink();
-
-      if (field.id === "customer-contact") {
-        renderReturningOrders(field.value);
-      }
-    });
-    field.addEventListener("change", () => {
-      updateCheckoutFieldStates(checkoutValidationVisible);
-      updateCheckoutSummary();
-      updateEmailLink();
-
-      if (field.id === "customer-contact") {
-        renderReturningOrders(field.value);
-      }
-    });
-  });
-
-  checkReturningButton?.addEventListener("click", () => {
-    const statusMessage = document.querySelector("#form-status");
-    renderReturningOrders();
-
-    if (statusMessage) {
-      statusMessage.textContent = getFieldValue("#customer-contact")
-        ? "Past orders checked on this device."
-        : "Enter a phone or email first.";
-    }
-  });
-
-  saveOrderButton?.addEventListener("click", saveCurrentOrderHistory);
-
-  squarePayButton?.addEventListener("click", (event) => {
-    event.preventDefault();
-    createExactSquareCheckout();
-  });
-
-  copyRequestButton?.addEventListener("click", async () => {
-    await copyText(buildRequestMessage(), "Checkout copied.");
-  });
-
-  renderSelectedItems();
-  renderReturningOrders();
-  showSquareReturnStatus();
+    // A different tab may have changed the cart while this customer was at Square.
+    const currentCart = rules.sanitizeCart(readStorage("localStorage", keys.cart, cartMemory));
+    const unchanged = JSON.stringify(currentCart) === JSON.stringify(pending.items);
+    selectedItems = unchanged ? [] : currentCart;
+    if (unchanged) { persistCart(); removeStorage("sessionStorage", keys.draft); }
+    removeStorage("sessionStorage", keys.pending); removeStorage("sessionStorage", keys.request);
+    message.textContent = `Payment confirmed by Square. Thank you for your order! ${unchanged ? "Your paid items have been cleared from the cart." : "Your cart changed while you were paying, so we kept it for you."} Keep your Square receipt; pickup or meet-up details are arranged with Taylor.`;
+    retry.hidden = true;
+    const url = new URL(location.href); url.searchParams.delete("square"); history.replaceState(null, "", url.href);
+    renderCart();
+  } catch (error) {
+    message.textContent = "We could not verify the payment right now. Check your Square receipt or contact Taylor before paying again. You can also try Check Payment Again.";
+  } finally { checkingPayment = false; retry.disabled = false; renderPayment(); }
 }
-
-document.querySelectorAll("[data-item-name]").forEach((button) => {
+function contactKey(contact) {
+  return contact.includes("@") ? contact.trim().toLowerCase() : contact.replace(/\D/g, "");
+}
+function readHistory() {
+  const stored = readStorage("localStorage", keys.history, {});
+  const clean = Object.create(null);
+  if (!stored || typeof stored !== "object" || Array.isArray(stored)) return clean;
+  Object.entries(stored).slice(0, 100).forEach(([key, orders]) => {
+    if (!Array.isArray(orders)) return;
+    const valid = orders.filter(order => order && Array.isArray(order.lines) && Number.isFinite(order.total)).slice(0, 5);
+    clean[contactKey(key)] = valid.map(order => ({ ...order, lines: order.lines.filter(line => line && rules.normalizeCartItem(line.item) && Number.isInteger(line.quantity) && line.quantity > 0 && line.quantity <= limits.quantity).map(line => ({ item: rules.normalizeCartItem(line.item), quantity: line.quantity })) }));
+  });
+  return clean;
+}
+function renderHistory() {
+  const container = $("#returning-orders"); if (!container) return;
+  container.replaceChildren();
+  const orders = readHistory()[contactKey(value("customer-contact"))] || [];
+  if (!orders.length) { appendText(container, "span", "Saved orders on this device will appear when you enter the same phone or email.", "empty-state"); return; }
+  orders.forEach(order => {
+    const card = appendText(container, "article", "", "saved-order");
+    const copy = appendText(card, "div", "");
+    const date = new Date(order.savedAt);
+    appendText(copy, "span", Number.isNaN(date.getTime()) ? "Saved order" : date.toLocaleDateString());
+    appendText(copy, "strong", "Your saved favorites");
+    appendText(copy, "p", order.lines.map(line => `${cartLabel(line.item)} ×${line.quantity}`).join(", "));
+    const add = appendText(card, "button", "Add Again", "add-button"); add.type = "button";
+    add.addEventListener("click", () => {
+      const additions = order.lines.flatMap(line => Array(line.quantity).fill(line.item));
+      const next = [...selectedItems, ...additions];
+      const capped = rules.sanitizeCart(next);
+      if (next.length !== capped.length) { status(`This would exceed ${limits.quantity} units of a bake. Remove some items first or email us for a larger order.`); return; }
+      selectedItems = next;
+      // Restore only fields that are empty; never reuse a past pickup date.
+      for (const [id, source, max] of [["customer-name", "name", limits.name], ["occasion", "occasion", limits.occasion], ["notes", "notes", limits.notes]]) {
+        if (!value(id) && typeof order[source] === "string") $(`#${id}`).value = order[source].slice(0, max);
+      }
+      status("Saved bakes added at current menu prices. Choose a new date and check your details.");
+      persistCart(); saveDraft(); renderCart();
+    });
+  });
+}
+function saveOrder() {
+  if (!rules.validContact(value("customer-contact"))) { status("Enter a valid phone or email before saving."); $("#customer-contact").focus(); return; }
+  if (!selectedItems.length) { status("Add at least one bake before saving."); return; }
+  if (validateFields().some(field => ["customer-name", "occasion", "notes"].includes(field.id) && field.value)) { status("Please check the length of your order details before saving."); return; }
+  const history = readHistory(); const order = summary();
+  const key = contactKey(value("customer-contact"));
+  const saved = { savedAt: new Date().toISOString(), name: value("customer-name"), occasion: value("occasion"), notes: value("notes"), total: order.total, lines: order.lines.map(line => ({ item: line.entry, quantity: line.quantity })) };
+  history[key] = [saved, ...(history[key] || [])].slice(0, 5);
+  status(saveStorage("localStorage", keys.history, history) ? "Saved on this device for next time. This does not submit or pay for your order." : "Your browser could not save this order.");
+  renderHistory();
+}
+async function copyOrder() {
+  const text = requestMessage();
+  try { await navigator.clipboard.writeText(text); status("Order copied. Paste it into an email or message to Taylor to send it."); }
+  catch {
+    const fallback = $("#copy-fallback"); fallback.hidden = false; fallback.value = text; fallback.focus(); fallback.select();
+    status("Select and copy the order text below, then paste it into your email.");
+  }
+}
+function setupCheckout() {
+  const form = $("#order-form"); if (!form) return;
+  const select = $("#menu-item");
+  select.replaceChildren(new Option("Choose an item", ""));
+  menuItems.forEach(item => select.add(new Option(`${item.name} — ${money(item.price)}${item.starting ? "+ (quote)" : ` ${item.label}`}`, item.name)));
+  const optionsContainer = appendText($(".quick-add-details"), "div", "", "quick-add-options");
+  const quickAddButton = $("#add-selected-item");
+  quickAddButton.before(optionsContainer);
+  select.addEventListener("change", () => {
+    optionsContainer.replaceChildren();
+    quickAddButton.textContent = "Add to order";
+    if (hasItem(select.value)) optionsContainer.append(createCustomizer(select.value, quickAddButton));
+  });
+  restoreDraft();
+  if (["occasion", "notes"].some(id => value(id))) $(".optional-details").open = true;
+  const url = new URL(location.href);
+  const items = url.searchParams.getAll("item");
+  // Consume the URL before rendering or saving so refresh/back cannot add it again.
+  if (url.searchParams.has("item")) { url.searchParams.delete("item"); history.replaceState(null, "", url.href); }
+  items.forEach(item => { if (hasItem(item)) addItem(item); });
+  form.addEventListener("submit", event => { event.preventDefault(); checkout(); });
+  quickAddButton.addEventListener("click", () => {
+    if (!value("menu-item")) { status("Choose a bake first."); return; }
+    const customizer = optionsContainer.querySelector(".bake-options");
+    const entry = customizer ? readCustomizer(customizer) : value("menu-item");
+    if (entry) addItem(entry);
+  });
+  form.querySelectorAll("input, select, textarea").forEach(field => {
+    const changed = () => { saveDraft(); renderPayment(); if (field.id === "customer-contact") renderHistory(); };
+    field.addEventListener("input", changed); field.addEventListener("change", changed);
+  });
+  $("#square-pay-button").addEventListener("click", checkout);
+  $("#copy-request").addEventListener("click", copyOrder);
+  $("#save-order-history").addEventListener("click", saveOrder);
+  $("#check-returning-order").addEventListener("click", renderHistory);
+  $("#clear-saved-orders").addEventListener("click", () => {
+    const history = readHistory();
+    delete history[contactKey(value("customer-contact"))];
+    status(saveStorage("localStorage", keys.history, history) ? "Saved orders for this contact have been removed from this device." : "Your browser could not update saved orders.");
+    renderHistory();
+  });
+  $("#check-payment").addEventListener("click", checkPayment);
+  renderHistory(); renderCart();
+  if (new URLSearchParams(location.search).has("square")) checkPayment();
+}
+document.querySelectorAll("[data-item-name]").forEach(button => {
+  const customizer = createCustomizer(button.dataset.itemName, button);
+  button.closest(".product-bottom").before(customizer);
   button.addEventListener("click", () => {
-    addSelectedItem(button.dataset.itemName, button);
+    const entry = readCustomizer(customizer);
+    if (entry) addItem(entry, button);
   });
 });
-
-loadSavedCart();
-setupStartingPriceButtons();
-setupMenuFilters();
-setupMenuCart();
+document.querySelectorAll("[data-price-name]").forEach(element => {
+  const item = priceBook[element.dataset.priceName];
+  if (item) element.textContent = item.starting ? `Starting at ${money(item.price)}` : `${money(item.price)} ${item.label}`;
+});
+document.querySelectorAll("[data-menu-filter]").forEach(button => button.addEventListener("click", () => {
+  document.querySelectorAll("[data-menu-filter]").forEach(other => { other.classList.toggle("is-active", other === button); other.setAttribute("aria-pressed", String(other === button)); });
+  document.querySelectorAll("[data-menu-category]").forEach(panel => { panel.hidden = button.dataset.menuFilter !== "all" && panel.dataset.menuCategory !== button.dataset.menuFilter; });
+}));
+$("#menu-clear-cart")?.addEventListener("click", () => { selectedItems = []; status("Current order cleared."); persistCart(); renderCart(); });
+$("#menu-checkout-link")?.addEventListener("click", event => { if (!selectedItems.length) event.preventDefault(); });
+window.addEventListener("storage", event => { if (event.key === keys.cart) { selectedItems = rules.sanitizeCart(readStorage("localStorage", keys.cart, [])); cartMemory = [...selectedItems]; renderCart(); } });
 setupCheckout();
+renderCart();

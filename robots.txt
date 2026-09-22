@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://theakinsbakehouse.com/sitemap.xml

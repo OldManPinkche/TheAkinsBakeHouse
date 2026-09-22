@@ -15,7 +15,7 @@ const expectedEntries = [
   },
   {
     key: "SQUARE_ENVIRONMENT",
-    value: "production"
+    value: "sandbox"
   },
   {
     key: "SITE_URL",
